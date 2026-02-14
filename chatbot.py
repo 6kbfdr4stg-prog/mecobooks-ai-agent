@@ -160,17 +160,13 @@ class Chatbot:
                 product_text_summary = "\n".join([f"- {p['title']} ({p['price']}d): {p.get('description', '')[:150]}..." for p in products])
                 context_data = f"Hệ thống đã tìm thấy các sản phẩm sau từ Mecobooks:\n{product_text_summary}"
                 
-                # 3. Get a short intro from LLM
-                intro_prompt = f"""
-                {self.system_prompt}
-                Người dùng muốn tìm: "{query_to_use}"
-                Hệ thống tìm thấy các sách sau (kèm mô tả sơ lược):
+                # Update System Prompt to ask for formatting
+                prompt = f"""
+                Khách hàng đang tìm: "{query_to_use}"
+                
+                Dưới đây là danh sách sản phẩm tìm được:
                 {product_text_summary}
                 
-                Hãy viết lời tư vấn ngắn gọn (khoảng 1-2 câu), dựa vào mô tả sách để khuyên người dùng nên chọn cuốn nào nếu phù hợp.
-                Nếu không có thông tin mô tả cụ thể, chỉ cần mời khách xem danh sách bên dưới.
-                """
-                llm_intro = self.llm.generate_response(intro_prompt)
                 
                 return f"{llm_intro}<br/><br/>{final_html_output}"
             else:
