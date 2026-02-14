@@ -22,7 +22,11 @@ try:
         for p in products:
             print(f"\nProduct: {p.get('name')}")
             print(f"Images raw data: {json.dumps(p.get('images'), indent=2)}")
+            print(f"Meta Data keys: {[m['key'] for m in p.get('meta_data', [])]}")
             
+            # Dump full meta data to see values
+            print(json.dumps(p.get('meta_data', []), indent=2))
+
             if p.get("images") and len(p["images"]) > 0:
                 print(f"First Image SRC: {p['images'][0].get('src')}")
             else:

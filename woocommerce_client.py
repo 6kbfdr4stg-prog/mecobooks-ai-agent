@@ -35,9 +35,18 @@ class WooCommerceClient:
             for p in products:
                 # Extract image
                 image_url = "https://placehold.co/300x300?text=No+Image" # Default fallback
+                
+                # Check standard images
                 if p.get("images") and len(p["images"]) > 0:
                     image_url = p["images"][0]["src"]
                 
+                # Check Woo External Images (meta_data)
+                elif p.get("meta_data"):
+                    for meta in p["meta_data"]:
+                        if meta.get("key") == "_ext_featured_url" and meta.get("value"):
+                            image_url = meta["value"]
+                            break
+                            
                 # Clean description (remove HTML tags if needed, or keep for web)
                 # For simplicity, we just take the name and price for now
                 
