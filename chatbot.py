@@ -137,14 +137,20 @@ class Chatbot:
                     image_url = p.get('image') or "https://placehold.co/80x80?text=No+Img"
                     
                     # Horizontal Card HTML
+                    stock_class = "h-stock-in" if p.get('stock_status') == 'instock' else "h-stock-out"
+                    stock_label = p.get('inventory_text', 'Còn hàng')
+
                     card = f"""
                     <div class="h-product-card">
                         <div class="h-product-image-container">
-                            <img src="{image_url}" class="h-product-image" alt="{p['title']}">
+                            <img src="{image_url}" alt="{p['title']}" class="h-product-image">
                         </div>
                         <div class="h-product-info">
                             <div class="h-product-title" title="{p['title']}">{p['title']}</div>
                             <div class="h-product-price">{p['price']}₫</div>
+                            <div style="font-size: 11px; margin-bottom: 4px; color: {'#2ecc71' if p.get('stock_status') == 'instock' else '#e74c3c'};">
+                                {stock_label}
+                            </div>
                             <div class="h-product-actions">
                                 <a href="{p['url']}" target="_blank" class="h-btn h-btn-view">Xem</a>
                                 <a href="{p['url']}" target="_blank" class="h-btn h-btn-buy">Mua</a>
@@ -157,7 +163,7 @@ class Chatbot:
                 final_html_output = "".join(product_html_list)
                 
                 # 2. Generate Text Context for LLM
-                product_text_summary = "\n".join([f"- {p['title']} ({p['price']}d): {p.get('description', '')[:150]}..." for p in products])
+                product_text_summary = "\n".join([f"- {p['title']} ({p['price']}d) [{p.get('inventory_text', '')}]: {p.get('description', '')[:150]}..." for p in products])
                 context_data = f"Hệ thống đã tìm thấy các sản phẩm sau từ Mecobooks:\n{product_text_summary}"
                 
                 # Update System Prompt to ask for formatting

@@ -73,12 +73,26 @@ class WooCommerceClient:
                 # Clean description (remove HTML tags if needed, or keep for web)
                 # For simplicity, we just take the name and price for now
                 
+                # Extract stock info
+                stock_status = p.get("stock_status", "instock") 
+                stock_quantity = p.get("stock_quantity")
+                
+                inventory_text = "Còn hàng"
+                if stock_status == "outofstock":
+                    inventory_text = "Hết hàng"
+                elif stock_status == "onbackorder":
+                    inventory_text = "Đặt trước"
+                elif stock_quantity is not None:
+                     inventory_text = f"Còn {stock_quantity}"
+
                 results.append({
                     "title": p["name"],
                     "price": f"{int(float(p['price'] or 0)):,}", # Format 100000 -> 100,000
                     "image": image_url,
                     "url": p["permalink"],
-                    "description": p.get("short_description", "")
+                    "description": p.get("short_description", ""),
+                    "stock_status": stock_status,
+                    "inventory_text": inventory_text
                 })
             
             
