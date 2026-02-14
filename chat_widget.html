@@ -1,0 +1,203 @@
+<!-- Haravan AI Chatbot Widget -->
+<style>
+  #haravan-chat-widget-container * {
+    box-sizing: border-box;
+  }
+  #haravan-chat-widget-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 99999;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #0084ff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+  }
+  #haravan-chat-widget-btn:hover {
+    transform: scale(1.05);
+  }
+  #haravan-chat-widget-btn svg {
+    width: 32px;
+    height: 32px;
+    fill: white;
+  }
+  #haravan-chat-window {
+    display: none;
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    width: 350px;
+    height: 500px;
+    max-height: 80vh;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    z-index: 99999;
+    flex-direction: column;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  #haravan-chat-header {
+    background: #0084ff;
+    color: white;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+  }
+  #haravan-chat-close {
+    cursor: pointer;
+    font-size: 20px;
+    background: none;
+    border: none;
+    color: white;
+  }
+  #haravan-chat-messages {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    background: #f0f2f5;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .h-message {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .h-bot {
+    background: white;
+    color: #050505;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+  .h-user {
+    background: #0084ff;
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  #haravan-chat-input-area {
+    padding: 12px;
+    background: white;
+    border-top: 1px solid #e4e6eb;
+    display: flex;
+    gap: 8px;
+  }
+  #haravan-chat-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    outline: none;
+    font-size: 14px;
+  }
+  #haravan-chat-send {
+    background: #0084ff;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 0 16px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  #haravan-chat-send:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .h-typing {
+    font-style: italic;
+    font-size: 12px;
+    color: #65676b;
+    margin-left: 10px;
+    display: none;
+  }
+</style>
+
+<div id="haravan-chat-widget-container">
+  <div id="haravan-chat-widget-btn" onclick="toggleHaravanChat()">
+    <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"></path></svg>
+  </div>
+
+  <div id="haravan-chat-window">
+    <div id="haravan-chat-header">
+      <span>Trợ lý ảo</span>
+      <button id="haravan-chat-close" onclick="toggleHaravanChat()">✕</button>
+    </div>
+    <div id="haravan-chat-messages" id="h-messages">
+      <div class="h-message h-bot">Xin chào! Tôi có thể giúp gì cho bạn hôm nay?</div>
+    </div>
+    <div class="h-typing" id="h-typing">Đang trả lời...</div>
+    <div id="haravan-chat-input-area">
+      <input type="text" id="haravan-chat-input" placeholder="Nhập tin nhắn..." onkeypress="handleHKeyPress(event)">
+      <button id="haravan-chat-send" onclick="sendHMessage()">Gửi</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_URL = "https://haravan-chatbot.onrender.com/chat"; // Thay đổi URL nếu cần
+
+  function toggleHaravanChat() {
+    const w = document.getElementById('haravan-chat-window');
+    const input = document.getElementById('haravan-chat-input');
+    if (w.style.display === 'flex') {
+      w.style.display = 'none';
+    } else {
+      w.style.display = 'flex';
+      setTimeout(() => input.focus(), 100);
+    }
+  }
+
+  function handleHKeyPress(e) {
+    if (e.key === 'Enter') sendHMessage();
+  }
+
+  function appendHMessage(text, isUser) {
+    const container = document.getElementById('haravan-chat-messages');
+    const div = document.createElement('div');
+    div.className = `h-message ${isUser ? 'h-user' : 'h-bot'}`;
+    div.innerText = text;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  async function sendHMessage() {
+    const input = document.getElementById('haravan-chat-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    appendHMessage(text, true);
+    input.value = '';
+    
+    document.getElementById('h-typing').style.display = 'block';
+    const sendBtn = document.getElementById('haravan-chat-send');
+    sendBtn.disabled = true;
+
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ message: text })
+      });
+      const data = await res.json();
+      appendHMessage(data.response, false);
+    } catch (err) {
+      console.error(err);
+      appendHMessage("Lỗi kết nối server!", false);
+    } finally {
+      document.getElementById('h-typing').style.display = 'none';
+      sendBtn.disabled = false;
+    }
+  }
+</script>
