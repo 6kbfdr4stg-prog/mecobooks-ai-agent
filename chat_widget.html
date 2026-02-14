@@ -5,21 +5,21 @@
   }
 
   #haravan-chat-widget-btn {
-    position: fixed;
-    bottom: 100px;
-    /* Moved up to clear sticky footer */
-    left: 30px;
-    /* Moved to Left to avoid Zalo/Phone buttons on the right */
-    right: auto;
-    z-index: 2147483647;
+    position: fixed !important;
+    bottom: 15px !important;
+    /* Moved closer to bottom */
+    left: 15px !important;
+    /* Moved closer to left */
+    right: auto !important;
+    z-index: 2147483647 !important;
     /* Max Z-Index */
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background-color: #0084ff;
+    width: 60px !important;
+    height: 60px !important;
+    border-radius: 50% !important;
+    background-color: #0084ff !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     cursor: pointer;
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: center;
     transition: transform 0.2s;
@@ -295,6 +295,11 @@
 </style>
 
 <div id="haravan-chat-widget-container">
+  <!-- Debug Element to confirm script execution -->
+  <div
+    style="position: fixed; top: 0; left: 0; width: 10px; height: 10px; background: red; z-index: 2147483647; pointer-events: none;"
+    title="Chatbot Loaded"></div>
+
   <div id="haravan-chat-widget-btn" onclick="toggleHaravanChat()">
     <svg viewBox="0 0 24 24">
       <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"></path>
@@ -331,6 +336,7 @@
 </div>
 
 <script>
+  console.log("Haravan Chatbot Script Loaded");
   const API_URL = "https://haravan-chatbot.onrender.com/chat";
   const IMAGE_UPLOAD_API_URL = "https://haravan-chatbot.onrender.com/chat";
 
