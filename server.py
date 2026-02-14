@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Request, Response, Form, File, UploadFile
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from chatbot import Chatbot
@@ -150,6 +151,17 @@ def send_fb_message(recipient_id, message_data):
             print(f"Failed to send message: {r.text}")
     except Exception as e:
         print(f"Error sending message: {e}")
+
+@app.get("/widget", response_class=HTMLResponse)
+async def get_widget():
+    """
+    Serves the Chat Widget HTML.
+    """
+    try:
+        with open("chat_widget.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return "Widget file not found."
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
