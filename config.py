@@ -14,3 +14,8 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 # Video Generation Config
 OUTPUT_VIDEO_DIR = "output_videos"
 TEMP_IMAGE_DIR = "temp_images"
+
+# WooCommerce Configuration
+WOO_URL = os.environ.get("WOO_URL", "https://mecobooks.com")
+WOO_CONSUMER_KEY = os.environ.get("WOO_CONSUMER_KEY")
+WOO_CONSUMER_SECRET = os.environ.get("WOO_CONSUMER_SECRET")

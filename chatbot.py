@@ -1,10 +1,12 @@
-from haravan_client import HaravanClient
+# from haravan_client import HaravanClient
+from woocommerce_client import WooCommerceClient
 from llm_service import LLMService
 import json
 
 class Chatbot:
     def __init__(self):
-        self.haravan = HaravanClient()
+        # self.haravan = HaravanClient()
+        self.woo = WooCommerceClient()
         self.llm = LLMService()
         self.system_prompt = """
         Bạn là trợ lý ảo AI của "Tiệm Sách Anh Tuấn".
@@ -32,18 +34,16 @@ class Chatbot:
         if intent == "search_product":
             # Extract basic query
             # Remove common keywords to get the actual product name
-            # Clean query by removing common stop words
             stop_words = ["tìm", "kiếm", "mua", "giá", "sách", "cuốn", "quyển", "tập", "bộ", "của", "các", "những", "bao nhiêu", "là", "gì", "ở", "đâu"]
             clean_query = user_message.lower()
             for word in stop_words:
                 clean_query = clean_query.replace(word, "")
             
             clean_query = clean_query.strip()
-            
-            # If query is empty after cleaning, use original or prompt user (using original for now)
             query_to_use = clean_query if clean_query else user_message
 
-            products = self.haravan.search_products(query_to_use, limit=5) # Increase limit for carousel
+            # Search products using WooCommerce
+            products = self.woo.search_products(query_to_use, limit=5)
             if products:
                 if platform == "facebook":
                     # Return list of elements for Generic Template
@@ -52,33 +52,29 @@ class Chatbot:
                         element = {
                             "title": p['title'],
                             "subtitle": f"{p['price']} VND",
-                            "image_url": p['images'][0] if p.get('images') else "",
-                            "buttons": []
+                            "image_url": p['image'],
+                            "buttons": [
+                                {
+                                    "type": "web_url",
+                                    "url": p['url'],
+                                    "title": "Xem chi tiết"
+                                },
+                                {
+                                    "type": "web_url",
+                                    "url": p['url'], # Direct to product page for now as add-to-cart link format differs
+                                    "title": "Mua ngay"
+                                }
+                            ]
                         }
-                        
-                        if p.get('handle'):
-                            element["buttons"].append({
-                                "type": "web_url",
-                                "url": f"https://mecobooks.com/products/{p['handle']}",
-                                "title": "Xem chi tiết"
-                            })
-                        
-                        if p.get('variant_id'):
-                            element["buttons"].append({
-                                "type": "web_url",
-                                "url": f"https://mecobooks.com/cart/{p['variant_id']}:1",
-                                "title": "Mua ngay"
-                            })
-                        
                         elements.append(element)
                     return elements
 
                 # 1. Generate HTML for the user (Widget)
                 product_html_list = []
-                for p in products[:3]: # Limit to 3 for web widget to avoid scrolling too much
+                for p in products[:3]: # Limit to 3 for web widget
                     img_html = ""
-                    if p.get('images'):
-                        img_html = f'<img src="{p["images"][0]}" class="product-card-img" />'
+                    if p.get('image'):
+                        img_html = f'<img src="{p["image"]}" class="product-card-img" />'
                     
                     desc = p.get('description', '')
                     if len(desc) > 100:
@@ -96,10 +92,8 @@ class Chatbot:
                     
                     # Links
                     links = []
-                    if p.get('handle'):
-                        links.append(f'<a href="https://mecobooks.com/products/{p["handle"]}" target="_blank" style="color: #0084ff; text-decoration: none; font-weight: 500;">🔗 Chi tiết</a>')
-                    if p.get('variant_id'):
-                        links.append(f'<a href="https://mecobooks.com/cart/{p["variant_id"]}:1" target="_blank" style="color: #d32f2f; font-weight: bold; text-decoration: none;">👉 Mua ngay</a>')
+                    links.append(f'<a href="{p["url"]}" target="_blank" style="color: #0084ff; text-decoration: none; font-weight: 500;">🔗 Chi tiết</a>')
+                    links.append(f'<a href="{p["url"]}" target="_blank" style="color: #d32f2f; font-weight: bold; text-decoration: none;">👉 Mua ngay</a>')
                     
                     if links:
                          card += "<div style='margin-top: 8px; padding-top: 8px; border-top: 1px dashed #ddd; display: flex; gap: 15px;'>" + "".join(links) + "</div>"
@@ -109,9 +103,9 @@ class Chatbot:
                 
                 final_html_output = "".join(product_html_list)
 
-                # 2. Generate Text Context for LLM (so it knows what was returned)
+                # 2. Generate Text Context for LLM
                 product_text_summary = "\n".join([f"- {p['title']} ({p['price']}d)" for p in products])
-                context_data = f"Hệ thống đã tìm thấy các sản phẩm sau:\n{product_text_summary}"
+                context_data = f"Hệ thống đã tìm thấy các sản phẩm sau từ Mecobooks:\n{product_text_summary}"
                 
                 # 3. Get a short intro from LLM
                 intro_prompt = f"""
@@ -121,15 +115,12 @@ class Chatbot:
                 {product_text_summary}
                 
                 Hãy viết một câu giới thiệu ngắn gọn, thân thiện (dưới 20 từ) để mời khách xem danh sách bên dưới. 
-                Ví dụ: "Dạ, shop tìm thấy vài cuốn sách phù hợp với bạn ạ:"
                 """
                 llm_intro = self.llm.generate_response(intro_prompt)
                 
-                # 4. Combine Intro + HTML
                 return f"{llm_intro}<br/><br/>{final_html_output}"
-
             else:
-                context_data = f"Không tìm thấy sản phẩm nào phù hợp với từ khóa '{query_to_use}'."
+                return "Xin lỗi, mình không tìm thấy sản phẩm nào phù hợp bên Mecobooks ạ."
 
         elif intent == "check_order":
             # Requires order ID or more info. For MVP, we'll list recent orders if no specific ID format found?
