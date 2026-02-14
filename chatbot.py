@@ -167,8 +167,14 @@ class Chatbot:
                 Dưới đây là danh sách sản phẩm tìm được:
                 {product_text_summary}
                 
+                Hãy giới thiệu ngắn gọn về các cuốn sách này cho khách hàng.
+                LƯU Ý QUAN TRỌNG: Nếu liệt kê danh sách sách, hãy xuống dòng cho mỗi cuốn sách để dễ đọc (dùng thẻ <br> hoặc xuống dòng rõ ràng).
+                Không cần lặp lại giá tiền nếu không cần thiết.
+                """
                 
-                return f"{llm_intro}<br/><br/>{final_html_output}"
+                response_text = self.llm.generate_response(prompt, system_instruction=self.system_prompt)
+                
+                return f"{response_text}<br/><br/>{final_html_output}"
             else:
                 return "Xin lỗi, mình không tìm thấy sản phẩm nào phù hợp bên Mecobooks ạ."
 
