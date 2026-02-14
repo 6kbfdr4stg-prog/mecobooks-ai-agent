@@ -28,11 +28,34 @@ class WooCommerceClient:
             return []
 
         try:
-            # Search for products
-            products = self.wcapi.get("products", params={"search": query, "per_page": limit}).json()
+            results_dict = {} # Use dict to deduplicate by ID key
+            from unidecode import unidecode
+            
+            # 1. Try Exact Slug Match (High Precision)
+            # Useful for "Nhà giả kim" -> "nha-gia-kim"
+            slug = unidecode(query).lower().replace(" ", "-")
+            try:
+                slug_products = self.wcapi.get("products", params={"slug": slug}).json()
+                if isinstance(slug_products, list):
+                    for p in slug_products:
+                        results_dict[p['id']] = p
+            except Exception as e:
+                print(f"Slug Search Error: {e}")
+
+            # 2. Loose Keyword Search (High Recall)
+            # Fetch more (50) to handle loose API search matching
+            loose_products = self.wcapi.get("products", params={"search": query, "per_page": 50}).json()
+            if isinstance(loose_products, list):
+                for p in loose_products:
+                    if p['id'] not in results_dict:
+                        results_dict[p['id']] = p
+            
+            # Convert back to list
+            products = list(results_dict.values())
             
             results = []
             for p in products:
+                # Extract image
                 # Extract image
                 image_url = "https://placehold.co/300x300?text=No+Image" # Default fallback
                 
@@ -87,7 +110,7 @@ class WooCommerceClient:
             # Filter low relevance if needed (e.g. < 50)
             # results = [r for r in results if r['_score'] >= 50]
             
-            return results
+            return results[:limit]
         except Exception as e:
             print(f"WooCommerce Search Error: {e}")
             return []
