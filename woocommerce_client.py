@@ -58,9 +58,34 @@ class WooCommerceClient:
                     "description": p.get("short_description", "")
                 })
             
-            # Sort results: Title match first, then others
-            query_lower = query.lower()
-            results.sort(key=lambda x: 0 if query_lower in x['title'].lower() else 1)
+            
+            # Fuzzy Sort Logic
+            from thefuzz import fuzz
+            from unidecode import unidecode
+            
+            # Normalize query: remove accents, lowercase
+            query_norm = unidecode(query).lower()
+            
+            for index, p in enumerate(results):
+                title_norm = unidecode(p['title']).lower()
+                
+                # Calculate scores
+                # 1. Token Set Ratio: Matches overlapping words efficiently (e.g. "sach giao khoa" matches "Giao trinh Sach Giao Khoa")
+                # 2. Partial Ratio: Matches substring
+                score = fuzz.token_set_ratio(query_norm, title_norm)
+                
+                # Boost if exact substring match in title (after normalization)
+                if query_norm in title_norm:
+                    score += 20 
+                    
+                # Cap at 100? No, let strict matches go higher (120) for sorting
+                p['_score'] = score
+            
+            # Sort by score descending
+            results.sort(key=lambda x: x['_score'], reverse=True)
+            
+            # Filter low relevance if needed (e.g. < 50)
+            # results = [r for r in results if r['_score'] >= 50]
             
             return results
         except Exception as e:

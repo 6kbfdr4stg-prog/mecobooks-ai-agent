@@ -5,3 +5,5 @@ google-generativeai
 python-dotenv
 a2wsgi
 woocommerce
+thefuzz
+unidecode
