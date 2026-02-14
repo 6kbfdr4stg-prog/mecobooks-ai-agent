@@ -32,7 +32,13 @@ class Chatbot:
         if intent == "search_product":
             # Extract basic query
             # Remove common keywords to get the actual product name
-            clean_query = user_message.lower().replace("tìm", "").replace("sách", "").replace("các cuốn", "").replace("của", "").replace("mua", "").replace("giá", "").strip()
+            # Clean query by removing common stop words
+            stop_words = ["tìm", "kiếm", "mua", "giá", "sách", "cuốn", "quyển", "tập", "bộ", "của", "các", "những", "bao nhiêu", "là", "gì", "ở", "đâu"]
+            clean_query = user_message.lower()
+            for word in stop_words:
+                clean_query = clean_query.replace(word, "")
+            
+            clean_query = clean_query.strip()
             
             # If query is empty after cleaning, use original or prompt user (using original for now)
             query_to_use = clean_query if clean_query else user_message
