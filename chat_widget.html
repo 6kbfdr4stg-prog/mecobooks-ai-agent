@@ -144,6 +144,71 @@
     margin-top: 5px;
     margin-bottom: 5px;
   }
+
+  /* New styles for image upload */
+  .haravan-chat-input-container {
+    display: flex;
+    align-items: center;
+    border-top: 1px solid #eee;
+    padding: 10px;
+    background: #fff;
+  }
+
+  #haravan-chat-input {
+    /* Reusing existing ID, but applying new styles */
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    padding: 10px 15px;
+    outline: none;
+  }
+
+  #haravan-chat-send,
+  #haravan-upload-btn {
+    /* Reusing existing ID, adding new one */
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #0084ff;
+    font-size: 20px;
+    margin-left: 10px;
+    padding: 5px;
+  }
+
+  #haravan-upload-btn {
+    color: #555;
+  }
+
+  #haravan-image-preview-container {
+    display: none;
+    padding: 10px;
+    background: #f9f9f9;
+    border-top: 1px solid #eee;
+    position: relative;
+  }
+
+  #haravan-image-preview {
+    max-height: 100px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+  }
+
+  #haravan-remove-image-btn {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 </style>
 
 <div id="haravan-chat-widget-container">
@@ -162,15 +227,38 @@
       <div class="h-message h-bot">Xin chào! Tôi có thể giúp gì cho bạn hôm nay?</div>
     </div>
     <div class="h-typing" id="h-typing">Đang trả lời...</div>
-    <div id="haravan-chat-input-area">
+
+    <!-- Image Preview Area -->
+    <div id="haravan-image-preview-container">
+      <img id="haravan-image-preview" src="" alt="Image Preview">
+      <button id="haravan-remove-image-btn">×</button>
+    </div>
+
+    <div class="haravan-chat-input-container">
+      <!-- Hidden File Input -->
+      <input type="file" id="haravan-image-input" accept="image/*" style="display: none;">
+
+      <!-- Upload Button -->
+      <button id="haravan-upload-btn">📎</button>
+
       <input type="text" id="haravan-chat-input" placeholder="Nhập tin nhắn..." onkeypress="handleHKeyPress(event)">
-      <button id="haravan-chat-send" onclick="sendHMessage()">Gửi</button>
+      <button id="haravan-chat-send" onclick="sendHMessage()">➤</button>
     </div>
   </div>
 </div>
 
 <script>
   const API_URL = "https://haravan-chatbot.onrender.com/chat"; // Thay đổi URL nếu cần
+  const IMAGE_UPLOAD_API_URL = "https://video-project-8y9p.onrender.com/chat"; // New API for image upload
+
+  // Image Upload Elements
+  const haravanUploadBtn = document.getElementById('haravan-upload-btn');
+  const haravanImageInput = document.getElementById('haravan-image-input');
+  const haravanImagePreviewContainer = document.getElementById('haravan-image-preview-container');
+  const haravanImagePreview = document.getElementById('haravan-image-preview');
+  const haravanRemoveImageBtn = document.getElementById('haravan-remove-image-btn');
+
+  let selectedImageFile = null;
 
   function toggleHaravanChat() {
     const w = document.getElementById('haravan-chat-window');
@@ -197,25 +285,91 @@
     container.scrollTop = container.scrollHeight;
   }
 
+  // Handle File Selection
+  haravanUploadBtn.addEventListener('click', () => haravanImageInput.click());
+
+  haravanImageInput.addEventListener('change', (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleImageSelect(e.target.files[0]);
+    }
+  });
+
+  // Handle Paste (Clipboard)
+  document.getElementById('haravan-chat-input').addEventListener('paste', (e) => {
+    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const blob = items[i].getAsFile();
+        handleImageSelect(blob);
+        e.preventDefault(); // Prevent pasting the image binary text
+        break;
+      }
+    }
+  });
+
+  function handleImageSelect(file) {
+    selectedImageFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      haravanImagePreview.src = e.target.result;
+      haravanImagePreviewContainer.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  haravanRemoveImageBtn.addEventListener('click', () => {
+    selectedImageFile = null;
+    haravanImageInput.value = '';
+    haravanImagePreviewContainer.style.display = 'none';
+  });
+
   async function sendHMessage() {
     const input = document.getElementById('haravan-chat-input');
     const text = input.value.trim();
-    if (!text) return;
+    if (!text && !selectedImageFile) return;
 
-    appendHMessage(text, true);
+    // Display User Message
+    if (selectedImageFile) {
+      appendHMessage(text + " [Đang gửi ảnh...]", true);
+      // Could display the image in chat history here too
+    } else {
+      appendHMessage(text, true);
+    }
+
     input.value = '';
+    const currentImageFile = selectedImageFile; // Snapshot for sending
+
+    // Clear preview after sending
+    selectedImageFile = null;
+    haravanImageInput.value = '';
+    haravanImagePreviewContainer.style.display = 'none';
 
     document.getElementById('h-typing').style.display = 'block';
     const sendBtn = document.getElementById('haravan-chat-send');
     sendBtn.disabled = true;
 
     try {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text })
-      });
-      const data = await res.json();
+      let res;
+      let data;
+
+      if (currentImageFile) {
+        const formData = new FormData();
+        formData.append('message', text || "Gửi ảnh"); // Ensure message is not empty string if sending image only
+        formData.append('file', currentImageFile);
+
+        res = await fetch(IMAGE_UPLOAD_API_URL, {
+          method: 'POST',
+          body: formData
+        });
+        data = await res.json();
+      } else {
+        res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        data = await res.json();
+      }
       appendHMessage(data.response, false);
     } catch (err) {
       console.error(err);

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, HTTPException, Request, Response, Form, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from chatbot import Chatbot
@@ -24,9 +24,6 @@ except Exception as e:
     print(f"Failed to initialize chatbot: {e}")
     bot = None
 
-class ChatRequest(BaseModel):
-    message: str
-
 class ChatResponse(BaseModel):
     response: str
 
@@ -39,12 +36,17 @@ def read_root():
     return {"status": "ok", "message": "Haravan AI Chatbot is running"}
 
 @app.post("/chat", response_model=ChatResponse)
-def chat_endpoint(request: ChatRequest):
+async def chat_endpoint(message: str = Form(...), file: UploadFile = File(None)):
     if not bot:
         raise HTTPException(status_code=500, detail="Chatbot not initialized properly")
     
     try:
-        response_text = bot.process_message(request.message)
+        image_data = None
+        if file:
+            print(f"Received file: {file.filename}")
+            image_data = await file.read()
+            
+        response_text = bot.process_message(message, image_data=image_data)
         return {"response": response_text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

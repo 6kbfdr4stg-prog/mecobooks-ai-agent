@@ -40,7 +40,7 @@ class Chatbot:
             return "check_order"
         return "general_chat"
 
-    def process_message(self, user_message, platform="web", image_url=None):
+    def process_message(self, user_message, platform="web", image_url=None, image_data=None):
         import requests
         from PIL import Image
         from io import BytesIO
@@ -48,14 +48,30 @@ class Chatbot:
         intent = "general_chat"
         
         # 0. Handle Image Input first (Visual Search)
+        img = None
         if image_url:
             intent = "search_product"
             # Download image
             try:
                 print(f"Downloading image from: {image_url}")
-                img_response = requests.get(image_url)
+                headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+                img_response = requests.get(image_url, headers=headers)
                 img = Image.open(BytesIO(img_response.content))
-                
+            except Exception as e:
+                print(f"Image processing error: {e}")
+                return "Xin lỗi, mình không đọc được ảnh này. Bạn thử nhập tên sách giúp mình nhé!"
+        
+        elif image_data:
+             intent = "search_product"
+             try:
+                 print("Processing uploaded image bytes...")
+                 img = Image.open(BytesIO(image_data))
+             except Exception as e:
+                 print(f"Image bytes processing error: {e}")
+                 return "Xin lỗi, ảnh tải lên bị lỗi. Bạn thử lại nhé!"
+
+        if img:
+            try:
                 # Ask LLM to identify the book
                 vision_prompt = """
                 Hãy nhìn vào bức ảnh này và xác định tên cuốn sách và tác giả (nếu có).
@@ -68,12 +84,11 @@ class Chatbot:
                 
                 # Use the recognized text as the search query
                 user_message = recognized_text.strip()
-                
             except Exception as e:
-                print(f"Image processing error: {e}")
-                return "Xin lỗi, mình không đọc được ảnh này. Bạn thử nhập tên sách giúp mình nhé!"
+                 print(f"LLM Vision Error: {e}")
+                 return "Xin lỗi, mình chưa nhận diện được sách trong ảnh."
 
-        if not image_url:
+        if not image_url and not image_data:
             intent = self.determine_intent(user_message)
         
         context_data = ""
