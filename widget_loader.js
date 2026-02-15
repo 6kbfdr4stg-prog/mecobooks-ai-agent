@@ -1,4 +1,4 @@
-(function() {
+(function () {
   // 1. Inject CSS
   const style = document.createElement('style');
   style.textContent = `
@@ -338,8 +338,8 @@
   document.body.appendChild(container);
 
   // 3. Run Logic
-  const API_URL = "https://haravan-chatbot.onrender.com/chat";
-  const IMAGE_UPLOAD_API_URL = "https://haravan-chatbot.onrender.com/chat";
+  const API_URL = "https://mecobooks-ai-agent.onrender.com/chat";
+  const IMAGE_UPLOAD_API_URL = "https://mecobooks-ai-agent.onrender.com/chat";
 
   // Image Upload Elements
   const haravanUploadBtn = document.getElementById('haravan-upload-btn');
