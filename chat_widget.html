@@ -295,11 +295,6 @@
 </style>
 
 <div id="haravan-chat-widget-container">
-  <!-- Debug Element to confirm script execution -->
-  <div
-    style="position: fixed; top: 0; left: 0; width: 10px; height: 10px; background: red; z-index: 2147483647; pointer-events: none;"
-    title="Chatbot Loaded"></div>
-
   <div id="haravan-chat-widget-btn" onclick="toggleHaravanChat()">
     <svg viewBox="0 0 24 24">
       <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"></path>
@@ -336,7 +331,6 @@
 </div>
 
 <script>
-  console.log("Haravan Chatbot Script Loaded");
   const API_URL = "https://haravan-chatbot.onrender.com/chat";
   const IMAGE_UPLOAD_API_URL = "https://haravan-chatbot.onrender.com/chat";
 
