@@ -100,23 +100,25 @@ class ContentCreatorAgent:
 
         # 4. Generate Video
         video_url = ""
-        try:
-            from video_processor import VideoProcessor
-            vp = VideoProcessor()
-            video_data = {
-                "id": str(product['id']),
-                "title": product['title'],
-                "image_url": product['image'],
-                "script": video_script
-            }
-            video_path = vp.generate_video(video_data)
-            if video_path:
-                # Assuming simple file server setup
-                filename = os.path.basename(video_path)
-                video_url = f"https://mecobooks-ai.onrender.com/static/videos/{filename}"
-                print(f"🎥 [Content Agent] Video created: {video_url}")
-        except Exception as e:
-            print(f"❌ [Content Agent] Video generation failed: {e}")
+        # SKIP VIDEO GENERATION ON RENDER (Due to missing ImageMagick)
+        # try:
+        #     from video_processor import VideoProcessor
+        #     vp = VideoProcessor()
+        #     video_path = vp.generate_video({
+        #         "title": product['title'],
+        #         "image_url": product['image'],
+        #         "script": video_script,
+        #         "id": f"{product['id']}_{int(time.time())}"
+        #     })
+        #     
+        #     if video_path:
+        #         # Convert local path to URL
+        #         filename = os.path.basename(video_path)
+        #         # Use the Render URL (or localhost if testing)
+        #         video_url = f"https://mecobooks-ai-agent.onrender.com/static/videos/{filename}"
+        #         print(f"🎥 [Content Agent] Video created: {video_url}")
+        # except Exception as e:
+        #     print(f"❌ [Content Agent] Video generation failed: {e}")
 
         return {
             "product": product,
