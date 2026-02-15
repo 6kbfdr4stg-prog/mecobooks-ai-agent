@@ -128,7 +128,14 @@ class VideoProcessor:
             output_filename = f"video_{product_data['id']}.mp4"
             output_path = os.path.join(STATIC_VIDEO_DIR, output_filename)
             
-            final_clip.write_videofile(output_path, codec="libx264", audio_codec="aac", threads=4, preset="ultrafast")
+            final_clip.write_videofile(
+                output_path, 
+                codec="libx264", 
+                audio_codec="aac", 
+                threads=4, 
+                preset="ultrafast",
+                logger="bar" # Enable logging to stdout
+            )
             
             # Cleanup Temps
             os.remove(img_path)
