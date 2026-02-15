@@ -62,14 +62,11 @@ schedule.every().monday.at("01:00").do(job_analyze_inventory) # 08:00 AM VN
 # Demo Schedule (Run immediately for first loop then every 10 mins?)
 # schedule.every(10).minutes.do(job_create_content)
 
-print("🚀 AI Agent Scheduler Started...")
-print("   - Daily Content at 09:00")
-print("   - Weekly Inventory on Monday at 08:00")
+if __name__ == "__main__":
+    print("🚀 AI Agent Scheduler Started...")
+    print("   - Daily Content at 09:00")
+    print("   - Weekly Inventory on Monday at 08:00")
 
-# Run once on startup to verify (Optional)
-# job_create_content() # Uncomment to run immediately on startup
-# job_analyze_inventory()
-
-while True:
-    schedule.run_pending()
-    time.sleep(60)
+    while True:
+        schedule.run_pending()
+        time.sleep(60)

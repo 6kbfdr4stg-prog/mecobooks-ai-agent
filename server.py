@@ -194,6 +194,55 @@ async def get_feed():
         print(f"Feed Generation Error: {e}")
         return Response(content=f"<error>{str(e)}</error>", media_type="application/xml", status_code=500)
 
+# ... existing imports ...
+import threading
+import time
+import schedule
+from scheduler import job_create_content, job_email_marketing, job_analyze_inventory
+
+# Define Schedule inside server or import from scheduler.py
+# If we import from scheduler.py, we need to make sure scheduler.py defines the schedule but doesn't run the loop immediately on import.
+# Let's just redefine the schedule here or rely on scheduler.py's definitions if it was a module.
+# Actually, scheduler.py has a 'while True' at the bottom. We should remove that or wrap it.
+# Ideally, we should refactor scheduler.py to be importable.
+# check scheduler.py content again. It has `while True` at the end. Importing it might block.
+# Let's adding a check in scheduler.py first, but since we can't edit two files in one step easily if we want to be safe,
+# I will just replicate the schedule logic here for simplicity and reliability in this context, 
+# OR I will edit scheduler.py to only run if __name__ == "__main__".
+
+# Strategy: I'll edit scheduler.py next. For now, let's prepare server.py to IMPORT it.
+# Actually, if I modify scheduler.py to not block on import, I can import it here.
+
+def run_scheduler():
+    from scheduler import job_create_content, job_email_marketing, job_analyze_inventory
+    import schedule
+    
+    # Redefine schedule here to be safe and explicit
+    schedule.every().day.at("04:00").do(job_create_content) # 11:00 AM VN
+    schedule.every().day.at("13:00").do(job_create_content) # 20:00 PM VN
+    schedule.every().day.at("03:00").do(job_email_marketing) # 10:00 AM VN
+    schedule.every().monday.at("01:00").do(job_analyze_inventory) # 08:00 AM VN
+    
+    print("🚀 [Server] Scheduler thread started...")
+    while True:
+        schedule.run_pending()
+        time.sleep(60)
+
+@app.on_event("startup")
+def startup_event():
+    # Start scheduler in a separate thread
+    t = threading.Thread(target=run_scheduler, daemon=True)
+    t.start()
+
+@app.post("/debug/trigger-content")
+async def trigger_content(background_tasks: BackgroundTasks):
+    """
+    Manually trigger content generation (for testing).
+    """
+    from scheduler import job_create_content
+    background_tasks.add_task(job_create_content)
+    return {"status": "triggered", "message": "Content generation started in background"}
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
