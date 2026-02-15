@@ -243,6 +243,22 @@ async def trigger_content(background_tasks: BackgroundTasks):
     background_tasks.add_task(job_create_content)
     return {"status": "triggered", "message": "Content generation started in background"}
 
+@app.get("/debug/videos")
+async def list_videos():
+    """
+    List all generated videos.
+    """
+    video_dir = "static/videos"
+    if not os.path.exists(video_dir):
+        return {"videos": []}
+    
+    files = os.listdir(video_dir)
+    video_files = [f for f in files if f.endswith(".mp4")]
+    return {
+        "count": len(video_files),
+        "params": [f"https://mecobooks-ai.onrender.com/static/videos/{f}" for f in video_files]
+    }
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
