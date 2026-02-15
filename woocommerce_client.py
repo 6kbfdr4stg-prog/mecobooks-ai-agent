@@ -198,9 +198,20 @@ class WooCommerceClient:
             # "Đắc Nhân Tâm" fails on search, but "Dale Carnegie" works.
             # Normalize check:
             check_key = query_norm.replace("-", " ")
+            
+            # FIX 1: Đắc Nhân Tâm -> Dale Carnegie
             if "dac nhan tam" in check_key:
                  try:
                     auth_params = {"search": "Dale Carnegie", "per_page": 20, "status": "publish"}
+                    auth_products = self.wcapi.get("products", params=auth_params).json()
+                    if isinstance(auth_products, list):
+                        self._process_fallback_products(auth_products, query_norm, results, results_dict)
+                 except: pass
+
+            # FIX 2: Dạy con làm giàu -> Robert Kiyosaki
+            if "day con lam giau" in check_key or "rich dad" in check_key:
+                 try:
+                    auth_params = {"search": "Kiyosaki", "per_page": 20, "status": "publish"}
                     auth_products = self.wcapi.get("products", params=auth_params).json()
                     if isinstance(auth_products, list):
                         self._process_fallback_products(auth_products, query_norm, results, results_dict)
