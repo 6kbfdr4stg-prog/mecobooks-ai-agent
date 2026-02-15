@@ -10,3 +10,4 @@ thefuzz
 jinja2
 python-multipart
 feedparser
+lxml

@@ -176,6 +176,19 @@ async def get_widget_loader():
     except FileNotFoundError:
         return Response(content="console.error('Widget loader not found');", media_type="application/javascript")
 
+@app.get("/feed.xml")
+async def get_feed():
+    """
+    Generates and returns the Google Shopping Product Feed.
+    """
+    from product_feed import generate_xml_feed
+    try:
+        xml_content = generate_xml_feed()
+        return Response(content=xml_content, media_type="application/xml")
+    except Exception as e:
+        print(f"Feed Generation Error: {e}")
+        return Response(content=f"<error>{str(e)}</error>", media_type="application/xml", status_code=500)
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
