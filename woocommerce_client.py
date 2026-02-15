@@ -178,3 +178,24 @@ class WooCommerceClient:
         except Exception as e:
             print(f"WooCommerce Order Creation Error: {e}")
             return None
+
+    def get_products(self, limit=10, orderby="date", order="desc", category=None):
+        """
+        Fetch products with sorting/filtering (for Best Sellers/Upsell).
+        """
+        if not self.wcapi: return []
+        
+        params = {
+            "per_page": limit,
+            "orderby": orderby,
+            "order": order,
+            "status": "publish"
+        }
+        if category:
+            params["category"] = category
+            
+        try:
+            return self.wcapi.get("products", params=params).json()
+        except Exception as e:
+            print(f"WooCommerce Get Products Error: {e}")
+            return []

@@ -13,6 +13,13 @@ class SalesSupportAgent:
         self.bot = Chatbot()
         self.woo = WooCommerceClient()
         self.conversations = {} # Store state per user_id
+        
+        # Load Knowledge Base
+        try:
+            with open("knowledge_base.txt", "r", encoding="utf-8") as f:
+                self.knowledge_base = f.read()
+        except FileNotFoundError:
+            self.knowledge_base = "Chưa có thông tin cửa hàng."
 
     def handle_customer_query(self, query, user_id="guest"):
         """
@@ -137,7 +144,27 @@ class SalesSupportAgent:
                 if new_order:
                     # Reset State
                     self.conversations[user_id] = {"state": "NORMAL", "data": {}}
-                    return f"🎉 Đặt hàng thành công! Mã đơn hàng của bạn là #{new_order['id']}. Shop sẽ sớm liên hệ xác nhận ạ. Cảm ơn bạn đã ủng hộ Tiệm Sách Anh Tuấn!"
+                    
+                    base_msg = f"🎉 Đặt hàng thành công! Mã đơn hàng của bạn là #{new_order['id']}. Shop sẽ sớm liên hệ xác nhận ạ. Cảm ơn bạn đã ủng hộ Tiệm Sách Anh Tuấn!"
+                    
+                    # --- UPSELL LOGIC (Proactive Selling) ---
+                    try:
+                        import random
+                        # Get Best Sellers
+                        best_sellers = self.woo.get_products(limit=5, orderby="popularity")
+                        if best_sellers:
+                            # Filter out the book just bought
+                            current_product_id = int(data.get("product_id", 0))
+                            recommendations = [p for p in best_sellers if p['id'] != current_product_id]
+                            
+                            if recommendations:
+                                rec_product = random.choice(recommendations)
+                                upsell_msg = f"\n\n💡 GỢI Ý: Shop thấy bạn đọc cuốn này chắc cũng sẽ thích **'{rec_product.get('name')}'** đó ạ. Sách này đang được rất nhiều bạn tìm mua. Bạn có muốn xem thử không?"
+                                return base_msg + upsell_msg
+                    except Exception as e:
+                        print(f"Upsell Error: {e}")
+                        
+                    return base_msg
                 else:
                     self.conversations[user_id]["state"] = "NORMAL" # Reset on error to avoid loop
                     return "Xin lỗi, hệ thống gặp sự cố khi tạo đơn hàng. Bạn vui lòng nhắn tin qua Zalo hoặc Fanpage để được hỗ trợ thủ công ạ."
