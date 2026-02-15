@@ -14,17 +14,44 @@ class ContentCreatorAgent:
         self.woo = WooCommerceClient()
         self.llm = LLMService()
 
+    def get_trending_news(self):
+        """
+        Fetches trending news from Google News RSS (Vietnam).
+        Returns a list of top titles.
+        """
+        import feedparser
+        rss_url = "https://news.google.com/rss?hl=vi&gl=VN&ceid=VN:vi"
+        try:
+            feed = feedparser.parse(rss_url)
+            if feed.entries:
+                return [entry.title for entry in feed.entries[:5]] # Get top 5
+        except Exception as e:
+            print(f"⚠️ News Fetch Error: {e}")
+        return []
+
     def generate_daily_content(self, platform="facebook"):
         """
         Main function to generate daily content.
-        1. Picks a product from WooCommerce.
-        2. Generates a caption using LLM.
-        3. Returns the content (and potentially triggers video creation).
+        1. Checks for Trending News (Newsjacking).
+        2. Picks a product relevant to trend OR random.
+        3. Generates a caption using LLM.
         """
         print(f"🤖 [Content Agent] Starting daily content generation for {platform}...")
         
-        # 1. Select a product (Random or based on strategy)
-        # For now, search for a popular keyword or random
+        # 1. Get Trends
+        trends = self.get_trending_news()
+        trend_context = ""
+        selected_trend = ""
+        
+        if trends:
+            import random
+            selected_trend = random.choice(trends)
+            print(f"🔥 [Trend Detected] {selected_trend}")
+            trend_context = f"\nSự kiện/Tin tức đang hot: '{selected_trend}'"
+
+        # 2. Select Product
+        # Ideal: Search woo based on trend. For now, random or specific keyword based on trend (advanced)
+        # Simplified: Pick random product but link story to proper trend
         products = self.woo.search_products("sách", limit=20)
         
         if not products:
@@ -33,10 +60,12 @@ class ContentCreatorAgent:
         import random
         product = random.choice(products)
         print(f"   Selected Product: {product['title']}")
-
-        # 2. Generate Caption
+ 
+        # 3. Generate Caption
         prompt = f"""
         Bạn là một chuyên gia sáng tạo nội dung cho Tiệm Sách Anh Tuấn (mecobooks.com).
+        {trend_context}
+        
         Hãy viết một bài đăng {platform} hấp dẫn để giới thiệu cuốn sách: "{product['title']}".
         
         Thông tin sách:
@@ -48,6 +77,7 @@ class ContentCreatorAgent:
         Yêu cầu:
         - Tone giọng: Nhẹ nhàng, sâu sắc, tinh tế, kể chuyện (storytelling).
         - Tuyệt đối KHÔNG giật tít, KHÔNG gây sốc, KHÔNG dùng ngôn ngữ chợ búa.
+        - {f"QUAN TRỌNG: Hãy khéo léo dẫn dắt từ sự kiện '{selected_trend}' sang nội dung cuốn sách một cách tự nhiên (nếu thấy không liên quan thì không cần ép buộc, cứ viết tự nhiên)." if selected_trend else ""}
         - Tập trung vào giá trị tinh thần và cảm xúc mà cuốn sách mang lại.
         - Có Call To Action nhẹ nhàng (ví dụ: "Mời bạn ghé đọc...", "Link mình để dưới comment...").
         - Sử dụng icon và hashtag phù hợp (#MecoBooks #SachHay ...).
