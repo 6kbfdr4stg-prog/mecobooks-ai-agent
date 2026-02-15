@@ -37,13 +37,17 @@ class SalesSupportAgent:
                     product_context += f"- {p['title']}: {p['price']} VNĐ ({p['inventory_text']}) - Link: {p['url']}\n"
                 
                 system_instruction = "Bạn là nhân viên tư vấn của Tiệm Sách Anh Tuấn. Hãy trả lời khách dựa trên thông tin sách tìm được dưới đây. Khéo léo chốt đơn."
-                response = self.bot.chat(f"{product_context}\n\nKhách hỏi: {query}", system_instruction)
+                full_prompt = f"{system_instruction}\n\n{product_context}\n\nKhách hỏi: {query}"
+                response = self.bot.llm.generate_response(full_prompt)
                 return response
             else:
-                return self.bot.chat(query, "Khách hỏi về sách nhưng không tìm thấy trong kho. Hãy xin lỗi và gợi ý họ nhắn tin Zalo để admin kiểm tra kỹ hơn.")
+                return self.bot.llm.generate_response(f"Khách hỏi: '{query}'. Khách hỏi về sách nhưng hệ thống tìm không thấy. Hãy xin lỗi và gợi ý họ nhắn tin Zalo để admin kiểm tra kỹ hơn.")
         
         # Default chat
-        return self.bot.chat(query)
+        # If not a specific sales query, fall back to standard chatbot processing
+        # But Chatbot.process_message handles everything including intent.
+        # So we might just want to return self.bot.process_message(query)
+        return self.bot.process_message(query)
 
     def process_message(self, message, platform="web", image_url=None, image_data=None):
         """

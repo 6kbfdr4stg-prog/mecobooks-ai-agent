@@ -232,9 +232,12 @@ class Chatbot:
             # Requires order ID or more info. For MVP, we'll list recent orders if no specific ID format found?
             # Or just tell LLM to ask for Order ID if not present.
             # Simplified: Fetch latest 3 orders to see if any match context (not secure for public, but ok for personal tool)
-            orders = self.haravan.get_orders(limit=3)
+            # Simplified: Fetch latest 3 orders to see if any match context (not secure for public, but ok for personal tool)
+            orders = self.woo.get_orders(limit=3)
             if orders:
-                order_list = "\n".join([f"Mã đơn: {o.get('name')} - Trạng thái: {o.get('financial_status')}/{o.get('fulfillment_status')} - Tổng: {o.get('total_price')}" for o in orders])
+                # Woo returns different structure than Haravan
+                # o['id'], o['status'], o['total']
+                order_list = "\n".join([f"Mã đơn: {o.get('id')} - Trạng thái: {o.get('status')} - Tổng: {o.get('total')}" for o in orders])
                 context_data = f"Thông tin các đơn hàng gần nhất (Admin View):\n{order_list}"
             else:
                 context_data = "Không tìm thấy đơn hàng nào gần đây."

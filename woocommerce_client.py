@@ -106,7 +106,8 @@ class WooCommerceClient:
                     "description": p.get("short_description", ""),
                     "stock_status": stock_status,
                     "inventory_text": inventory_text,
-                    "total_sales": total_sales
+                    "total_sales": total_sales,
+                    "id": p['id']
                 })
             
             
