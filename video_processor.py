@@ -19,11 +19,17 @@ class VideoProcessor:
 
     def _download_image(self, url):
         try:
-            response = requests.get(url, timeout=10)
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+            response = requests.get(url, headers=headers, timeout=10)
             if response.status_code == 200:
+                print(f"✅ Image downloaded successfully: {url}")
                 return Image.open(BytesIO(response.content)).convert("RGB")
+            else:
+                print(f"❌ Failed to download image. Status code: {response.status_code}")
         except Exception as e:
-            print(f"Error downloading image: {e}")
+            print(f"❌ Error downloading image: {e}")
         return None
 
     def _create_portrait_image(self, pil_image):
