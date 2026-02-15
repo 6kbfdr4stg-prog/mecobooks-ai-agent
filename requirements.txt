@@ -11,3 +11,7 @@ jinja2
 python-multipart
 feedparser
 lxml
+moviepy
+gTTS
+imageio
+numpy

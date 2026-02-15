@@ -1,266 +1,154 @@
 import os
-import requests
-import json
-import base64
 import random
-import re
-import hashlib
+from moviepy.editor import ImageClip, AudioFileClip, CompositeVideoClip
+from gtts import gTTS
 from PIL import Image, ImageFilter
+import requests
+from io import BytesIO
 
-# Monkey patch for Pillow 10+ (moviepy 1.0.3 uses ANTIALIAS)
-if not hasattr(Image, 'ANTIALIAS'):
-    Image.ANTIALIAS = Image.LANCZOS
-
-from moviepy.editor import ImageClip, AudioFileClip, CompositeVideoClip, concatenate_videoclips
-from config import TEMP_IMAGE_DIR, OUTPUT_VIDEO_DIR
-
-# --- Configuration ---
-# Default key from original script (should be replaced by user key ideally)
-GOOGLE_TTS_API_KEY = os.environ.get("GOOGLE_TTS_API_KEY", "AIzaSyBsXsKTO_g4tUVmKxNW1JPlOpLNGxGBIqE").strip()
-GOOGLE_TTS_ENDPOINT = "https://texttospeech.googleapis.com/v1/text:synthesize"
-
+# Configuration
 VIDEO_W, VIDEO_H = 1080, 1920
-FPS = 30
-FADE_IN, FADE_OUT = 0.5, 0.5
-KB_MIN_ZOOM = 1.03
-KB_MAX_ZOOM = 1.08
+FPS = 24
+STATIC_VIDEO_DIR = "static/videos"
 
-os.makedirs(OUTPUT_VIDEO_DIR, exist_ok=True)
+os.makedirs(STATIC_VIDEO_DIR, exist_ok=True)
 
-# --- Helper Functions ---
+class VideoProcessor:
+    def __init__(self):
+        pass
 
-def normalize_space(s):
-    return re.sub(r"\s+", " ", (s or "").strip())
-
-def split_into_sentences(text):
-    text = normalize_space(text)
-    if not text: return []
-    parts = re.split(r'(?<=[\.\!\?])\s+', text)
-    merged = []
-    for p in parts:
-        if merged and len(p) < 15:
-            merged[-1] = merged[-1] + " " + p
-        else:
-            merged.append(p)
-    return [p for p in merged if p.strip()]
-
-def durations_from_sentences(sentences, total_dur, min_per_seg=1.2):
-    if not sentences: return [total_dur]
-    lens = [max(1, len(s)) for s in sentences]
-    s = float(sum(lens))
-    raw = [total_dur * (l / s) for l in lens]
-    raw = [max(min_per_seg, d) for d in raw]
-    scale = total_dur / sum(raw)
-    return [d * scale for d in raw]
-
-def sha1(s):
-    return hashlib.sha1(s.encode("utf-8")).hexdigest()
-
-# --- TTS ---
-
-def get_tts_audio(text, voice_name="vi-VN-Neural2-A", speaking_rate=1.0):
-    """
-    Generate audio from text using Google Cloud TTS REST API.
-    Returns path to saved audio file.
-    """
-    filename = f"tts_{sha1(text)[:10]}.mp3"
-    filepath = os.path.join(TEMP_IMAGE_DIR, filename)
-    
-    if os.path.exists(filepath):
-        return filepath
-
-    url = f"{GOOGLE_TTS_ENDPOINT}?key={GOOGLE_TTS_API_KEY}"
-    data = {
-        "input": {"text": text},
-        "voice": {"languageCode": "vi-VN", "name": voice_name},
-        "audioConfig": {"audioEncoding": "MP3", "speakingRate": speaking_rate}
-    }
-    
-    response = requests.post(url, json=data)
-    response.raise_for_status()
-    
-    audio_content = response.json().get("audioContent")
-    if not audio_content:
-        raise Exception("No audio content returned from TTS API")
-        
-    with open(filepath, "wb") as f:
-        f.write(base64.b64decode(audio_content))
-        
-    return filepath
-
-# --- Image Processing ---
-
-def fit_image_to_canvas(img_path, W=VIDEO_W, H=VIDEO_H):
-    """
-    Fit image to 9:16 canvas with blurred background.
-    Returns path to processed image.
-    """
-    try:
-        img = Image.open(img_path).convert("RGB")
-        
-        # Blur background
-        bg = img.copy().resize((W, H)).filter(ImageFilter.GaussianBlur(radius=20))
-        
-        # Resize foreground
-        iw, ih = img.size
-        scale = min(W/iw, H/ih)
-        new_w, new_h = int(iw*scale), int(ih*scale)
-        img_resized = img.resize((new_w, new_h), Image.LANCZOS)
-        
-        # Paste
-        canvas = bg.copy()
-        canvas.paste(img_resized, ((W-new_w)//2, (H-new_h)//2))
-        
-        out_path = img_path.replace(".jpg", "_fit.jpg").replace(".png", "_fit.jpg")
-        canvas.save(out_path, format="JPEG", quality=95)
-        return out_path
-    except Exception as e:
-        print(f"Error processing image {img_path}: {e}")
+    def _download_image(self, url):
+        try:
+            response = requests.get(url, timeout=10)
+            if response.status_code == 200:
+                return Image.open(BytesIO(response.content)).convert("RGB")
+        except Exception as e:
+            print(f"Error downloading image: {e}")
         return None
 
-# --- Ken Burns Effect ---
-
-def make_ken_burns_clip(img_path, duration, seed=0):
-    """
-    Create a Ken Burns effect clip from an image.
-    """
-    random.seed(seed) # Deterministic
-    
-    zoom_in = (seed % 2 == 0)
-    z_start = random.uniform(KB_MIN_ZOOM, KB_MAX_ZOOM)
-    z_end = 1.0 if zoom_in else random.uniform(KB_MIN_ZOOM, KB_MAX_ZOOM)
-    
-    if zoom_in: z0, z1 = 1.0, z_start
-    else: z0, z1 = z_start, 1.0
-    
-    direction = seed % 4 # 0:L-R, 1:R-L, 2:T-B, 3:B-T
-
-    def fl(gf, t):
-        # MoviePy custom filter logic
-        # Ideally using CompositeVideoClip with dynamic resize/position
-        # Simplified: Just resize/crop might be easier, but let's stick to simple zoom
-        # This function is hard to implement perfectly without advanced MoviePy usage
-        # Let's use a simpler approach: ImageClip with resize
-        return gf(t)
-
-    # Simplified Ken Burns using pure MoviePy resize/position
-    # Note: MoviePy v1.0.3 resize can be slow or complex with lambda
-    
-    clip = ImageClip(img_path).set_duration(duration)
-    
-    def scale(t):
-        prog = t / duration
-        return z0 + (z1 - z0) * prog
+    def _create_portrait_image(self, pil_image):
+        """Creates a 9:16 image with blurred background"""
+        bg = pil_image.copy().resize((VIDEO_W, VIDEO_H)).filter(ImageFilter.GaussianBlur(radius=30))
         
-    def position(t):
-        # Center crop logic
-        s = scale(t)
-        # We need to center the zoomed image
-        # W, H are fixed
-        # Current size is W*s, H*s
-        # x = (W - W*s) / 2
-        # y = (H - H*s) / 2
+        # Resize foreground to fit width or height
+        iw, ih = pil_image.size
+        # Try to fit width mostly, but keep within bounds
+        scale = min(VIDEO_W / iw, VIDEO_H / ih) * 0.85 # 85% fill
+        new_w, new_h = int(iw * scale), int(ih * scale)
+        fg = pil_image.resize((new_w, new_h), Image.LANCZOS)
         
-        # Pan logic
-        prog = t / duration
-        move_x = 0
-        move_y = 0
-        if direction == 0: move_x = -20 * prog # Pan left
-        # ... simplified pan
+        # Center paste
+        x = (VIDEO_W - new_w) // 2
+        y = (VIDEO_H - new_h) // 2
+        bg.paste(fg, (x, y))
         
-        # Just simple center zoom for now to be safe
-        x = (VIDEO_W - VIDEO_W*s) / 2
-        y = (VIDEO_H - VIDEO_H*s) / 2
-        return (x, y)
+        # Save to temp file
+        temp_path = f"temp_img_{random.randint(1000,9999)}.jpg"
+        bg.save(temp_path)
+        return temp_path
 
-    # Re-implementing the one from original script
-    # It used CompositeVideoClip.
-    
-    def scale_fn(t):
-        prog = t / max(1e-4, duration)
-        return z0 + (z1 - z0) * prog
+    def _generate_tts(self, text, lang='vi'):
+        """Generates TTS audio using gTTS (Free)"""
+        try:
+            tts = gTTS(text=text, lang=lang)
+            temp_audio = f"temp_audio_{random.randint(1000,9999)}.mp3"
+            tts.save(temp_audio)
+            return temp_audio
+        except Exception as e:
+            print(f"TTS Error: {e}")
+            return None
 
-    def pos_fn(t):
-        prog = t / max(1e-4, duration)
-        s = scale_fn(t)
-        sw, sh = VIDEO_W * s, VIDEO_H * s
-        
-        # Simple center alignment because pan logic is complex to port without testing
-        x = (VIDEO_W - sw) / 2
-        y = (VIDEO_H - sh) / 2
-        return (x, y)
-
-    # Note: resizing in MoviePy can be heavy.
-    video = clip.resize(lambda t: scale_fn(t)).set_position(lambda t: pos_fn(t))
-    return CompositeVideoClip([video], size=(VIDEO_W, VIDEO_H)).fadein(FADE_IN).fadeout(FADE_OUT)
-
-
-# --- Main Generator ---
-
-def generate_video(product_data):
-    """
-    Generate video for a product.
-    product_data: {
-        "id": ..., "title": ..., "script": ..., "images": [...]
-    }
-    """
-    print(f"Generating video for: {product_data['title']}")
-    
-    # 1. Prepare Images
-    prepared_images = []
-    for img_path in product_data['images']:
-        fit_path = fit_image_to_canvas(img_path)
-        if fit_path:
-            prepared_images.append(fit_path)
+    def _ken_burns_zoom(self, clip, zoom_ratio=1.1):
+        """Applies a slow zoom effect"""
+        def effect(get_frame, t):
+            img = Image.fromarray(get_frame(t))
+            base_size = img.size
             
-    if not prepared_images:
-        print("No valid images found.")
-        return None
+            # Zoom Factor over time
+            progress = t / clip.duration
+            current_zoom = 1 + (zoom_ratio - 1) * progress
+            
+            # Resize
+            new_size = (int(base_size[0] * current_zoom), int(base_size[1] * current_zoom))
+            img_zoomed = img.resize(new_size, Image.LANCZOS)
+            
+            # Center Crop
+            x = (new_size[0] - base_size[0]) // 2
+            y = (new_size[1] - base_size[1]) // 2
+            img_cropped = img_zoomed.crop((x, y, x + base_size[0], y + base_size[1]))
+            
+            return np.array(img_cropped)
+        
+        # MoviePy's resize is simpler and faster than custom per-frame
+        # Simple Zoom: resize to 1.1x over duration, always keep centered
+        # Using built-in resize with lambda
+        return clip.resize(lambda t: 1 + 0.05 * t) # Simple linear zoom
 
-    # 2. TTS
-    script = product_data['script']
-    try:
-        audio_path = get_tts_audio(script)
-    except Exception as e:
-        print(f"TTS Error: {e}")
-        return None
+    def generate_video(self, product_data):
+        """
+        Main function to create video.
+        product_data: {'title': str, 'image_url': str, 'script': str, 'id': str}
+        """
+        print(f"🎬 Creating video for: {product_data['title']}")
         
-    audio_clip = AudioFileClip(audio_path)
-    total_duration = audio_clip.duration
-    
-    # 3. Calculate Durations
-    # If not enough images, loop them
-    while len(prepared_images) * 3.0 < total_duration:
-        prepared_images.extend(prepared_images)
+        # 1. Image
+        pil_img = self._download_image(product_data['image_url'])
+        if not pil_img:
+            return None
         
-    # Limit number of images if too many
-    max_imgs = int(total_duration / 2.0) + 1 # Min 2s per image
-    prepared_images = prepared_images[:max_imgs]
-
-    sentences = split_into_sentences(script)
-    # We map sentences roughly to images or just divide time
-    # Let's divide time equally for simplicity in this version, 
-    # or use the robust logic from original script if possible.
-    # Original logic: durations_from_sentences maps sentences to time.
-    # But we need to map images to time.
-    
-    # Let's just distribute images evenly across the audio duration
-    img_duration = total_duration / len(prepared_images)
-    
-    clips = []
-    for idx, img_path in enumerate(prepared_images):
-        clip = make_ken_burns_clip(img_path, img_duration, seed=idx)
-        clips.append(clip)
+        img_path = self._create_portrait_image(pil_img)
         
-    # 4. Concatenate
-    final_video = concatenate_videoclips(clips, method="compose")
-    final_video = final_video.set_audio(audio_clip)
-    final_video = final_video.set_fps(FPS)
-    
-    # 5. Write File
-    output_filename = f"{product_data['id']}_video.mp4"
-    output_path = os.path.join(OUTPUT_VIDEO_DIR, output_filename)
-    
-    final_video.write_videofile(output_path, codec="mpeg4", audio_codec="aac")
-    print(f"Video saved to: {output_path}")
-    return output_path
+        # 2. Audio
+        audio_path = self._generate_tts(product_data['script'])
+        if not audio_path:
+            return None
+            
+        # 3. Assemble
+        try:
+            audio_clip = AudioFileClip(audio_path)
+            duration = audio_clip.duration + 0.5 # Add small padding
+            
+            # Video Clip
+            video_clip = ImageClip(img_path).set_duration(duration)
+            
+            # Apply Zoom (Simple implementation to avoid complex dependencies)
+            # We will interpret "Ken Burns" as a simple resize zoom here
+            # video_clip = video_clip.resize(lambda t : 1 + 0.02*t)  # Zoom in 2% per sec
+            # Note: resize is CPU intensive. Let's stick to static first for speed on Render, 
+            # or very simple zoom.
+             
+            # Center on 1080x1920 (it already is, but safety check)
+            video_clip = video_clip.set_position("center")
+            
+            # Combine
+            final_clip = video_clip.set_audio(audio_clip)
+            final_clip.fps = FPS
+            
+            # Output Path
+            output_filename = f"video_{product_data['id']}.mp4"
+            output_path = os.path.join(STATIC_VIDEO_DIR, output_filename)
+            
+            final_clip.write_videofile(output_path, codec="libx264", audio_codec="aac", threads=4, preset="ultrafast")
+            
+            # Cleanup Temps
+            os.remove(img_path)
+            os.remove(audio_path)
+            
+            return output_path
+            
+        except Exception as e:
+            print(f"Video Generation Error: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+            
+if __name__ == "__main__":
+    # Test
+    vp = VideoProcessor()
+    data = {
+        "title": "Test Book",
+        "script": "Xin chào, đây là video thử nghiệm cho cuốn sách Nhà Giả Kim. Cuốn sách bán chạy nhất mọi thời đại.",
+        "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/The_Alchemist_by_Paulo_Coelho_book_cover.jpg/330px-The_Alchemist_by_Paulo_Coelho_book_cover.jpg",
+        "id": "test_01"
+    }
+    vp.generate_video(data)

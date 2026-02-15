@@ -18,6 +18,11 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
+from fastapi.staticfiles import StaticFiles
+# Mount static directory for videos
+os.makedirs("static", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # Initialize Chatbot (Agent)
 try:
     bot = SalesSupportAgent()

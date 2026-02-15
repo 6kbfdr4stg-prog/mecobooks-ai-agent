@@ -83,14 +83,47 @@ class ContentCreatorAgent:
         - Sử dụng icon và hashtag phù hợp (#MecoBooks #SachHay ...).
         - Độ dài: Khoảng 150-200 từ.
         - TUYỆT ĐỐI KHÔNG CHÈN URL VÀO BÀI VIẾT.
+        
+        ---
+        PHẦN 2: KỊCH BẢN VIDEO NGẮN (REELS/TIKTOK)
+        Hãy viết thêm một kịch bản ngắn (khoảng 30-40 giây đọc) để làm video giới thiệu sách này. 
+        Chỉ viết lời bình (Voiceover), không cần chỉ dẫn hình ảnh.
+        Bắt đầu bằng: "SCRIPT_VIDEO:"
         """
         
-        caption = self.llm.generate_response(prompt)
+        full_response = self.llm.generate_response(prompt)
         
+        # Split caption and script
+        parts = full_response.split("SCRIPT_VIDEO:")
+        caption = parts[0].strip()
+        video_script = parts[1].strip() if len(parts) > 1 else f"Giới thiệu cuốn sách {product['title']}. Một tác phẩm tuyệt vời bạn không nên bỏ lỡ."
+
+        # 4. Generate Video
+        video_url = ""
+        try:
+            from video_processor import VideoProcessor
+            vp = VideoProcessor()
+            video_data = {
+                "id": str(product['id']),
+                "title": product['title'],
+                "image_url": product['image'],
+                "script": video_script
+            }
+            video_path = vp.generate_video(video_data)
+            if video_path:
+                # Assuming simple file server setup
+                filename = os.path.basename(video_path)
+                video_url = f"https://mecobooks-ai.onrender.com/static/videos/{filename}"
+                print(f"🎥 [Content Agent] Video created: {video_url}")
+        except Exception as e:
+            print(f"❌ [Content Agent] Video generation failed: {e}")
+
         return {
             "product": product,
             "caption": caption,
-            "image_url": product['image']
+            "image_url": product['image'],
+            "video_url": video_url,
+            "video_script": video_script
         }
 
     def send_to_webhook(self, content):
@@ -112,6 +145,7 @@ class ContentCreatorAgent:
             "image_url": content['image_url'],
             "caption": content['caption'],
             "link": content['product']['url'],
+            "video_url": content.get('video_url', ''),
             "source": "ai_agent"
         }
 
