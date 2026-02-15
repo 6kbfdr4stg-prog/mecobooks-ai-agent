@@ -42,8 +42,11 @@ def job_analyze_inventory():
 # but in production, uncomment the real times.
 
 # Production Schedule
-schedule.every().day.at("09:00").do(job_create_content)
-schedule.every().monday.at("08:00").do(job_analyze_inventory)
+# Converting Hanoi Time (GMT+7) to UTC for Render Server
+schedule.every().day.at("04:00").do(job_create_content) # 11:00 AM VN
+schedule.every().day.at("13:00").do(job_create_content) # 20:00 PM VN
+
+schedule.every().monday.at("01:00").do(job_analyze_inventory) # 08:00 AM VN
 
 # Demo Schedule (Run immediately for first loop then every 10 mins?)
 # schedule.every(10).minutes.do(job_create_content)
