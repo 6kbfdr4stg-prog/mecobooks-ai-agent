@@ -142,3 +142,20 @@ class WooCommerceClient:
         except Exception as e:
             print(f"WooCommerce Search Error: {e}")
             return []
+
+    def get_orders(self, after=None, before=None, status="completed", limit=20):
+        """
+        Fetch orders for email marketing.
+        after/before: ISO 8601 string (e.g., '2023-10-25T00:00:00')
+        """
+        if not self.wcapi: return []
+        
+        params = {"status": status, "per_page": limit}
+        if after: params["after"] = after
+        if before: params["before"] = before
+        
+        try:
+            return self.wcapi.get("orders", params=params).json()
+        except Exception as e:
+            print(f"WooCommerce Order Fetch Error: {e}")
+            return []

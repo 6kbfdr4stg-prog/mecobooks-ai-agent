@@ -9,6 +9,15 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from ai_agents.content_creator import ContentCreatorAgent
 from ai_agents.inventory_analyst import InventoryAnalystAgent
+from ai_agents.email_marketing import EmailMarketingAgent
+
+def job_email_marketing():
+    print("⏰ [Scheduler] Triggering Daily Email Marketing...")
+    try:
+        agent = EmailMarketingAgent()
+        agent.run_daily_campaign()
+    except Exception as e:
+        print(f"❌ Email Marketing Failed: {e}")
 
 def job_create_content():
     print("⏰ [Scheduler] Triggering Daily Content Creation...")
@@ -45,6 +54,8 @@ def job_analyze_inventory():
 # Converting Hanoi Time (GMT+7) to UTC for Render Server
 schedule.every().day.at("04:00").do(job_create_content) # 11:00 AM VN
 schedule.every().day.at("13:00").do(job_create_content) # 20:00 PM VN
+
+schedule.every().day.at("03:00").do(job_email_marketing) # 10:00 AM VN
 
 schedule.every().monday.at("01:00").do(job_analyze_inventory) # 08:00 AM VN
 
