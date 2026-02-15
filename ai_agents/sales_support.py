@@ -5,12 +5,12 @@ import sys
 # Add parent dir to path to import services
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from chatbot import ChatBot
+from chatbot import Chatbot
 from woocommerce_client import WooCommerceClient
 
 class SalesSupportAgent:
     def __init__(self):
-        self.bot = ChatBot()
+        self.bot = Chatbot()
         self.woo = WooCommerceClient()
 
     def handle_customer_query(self, query):
