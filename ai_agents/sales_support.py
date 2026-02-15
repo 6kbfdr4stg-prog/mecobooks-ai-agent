@@ -54,13 +54,33 @@ class SalesSupportAgent:
             
             # Summary
             product_name = data.get("product_name", "Sách")
-            price = data.get("price", "0")
-            total = price 
+            price_str = data.get("price", "0").replace(",", "").replace(".", "")
+            try:
+                price_val = int(price_str)
+            except:
+                price_val = 0
+                
+            # Shipping Logic
+            shipping_fee = 20000
+            if price_val >= 300000:
+                shipping_fee = 0
+                
+            total_val = price_val + shipping_fee
+            
+            # Save for next step
+            data["shipping_fee"] = shipping_fee
+            data["total"] = total_val
+            
+            shipping_text = f"{shipping_fee:,} VNĐ" if shipping_fee > 0 else "Miễn phí"
+            total_text = f"{total_val:,} VNĐ"
             
             return f"""
             🔔 XÁC NHẬN ĐƠN HÀNG:
             - Sách: {product_name}
-            - Giá: {price} VNĐ (Chưa bao gồm phí ship)
+            - Giá: {data.get("price", "0")} VNĐ
+            - Phí ship: {shipping_text}
+            - TỔNG CỘNG: {total_text}
+            -------------------------
             - Họ tên: {data['name']}
             - SĐT: {data['phone']}
             - Địa chỉ: {data['address']}
@@ -72,6 +92,8 @@ class SalesSupportAgent:
         elif state == "CONFIRMING":
             if any(w in query.lower() for w in ["có", "ok", "đúng", "chốt", "xác nhận", "đồng ý"]):
                 # Create Order
+                shipping_cost = str(data.get("shipping_fee", 20000))
+                
                 order_data = {
                     "payment_method": "cod",
                     "payment_method_title": "Cash on Delivery",
@@ -98,6 +120,13 @@ class SalesSupportAgent:
                         {
                             "product_id": data.get("product_id"),
                             "quantity": 1
+                        }
+                    ],
+                    "shipping_lines": [
+                        {
+                            "method_id": "flat_rate",
+                            "method_title": "Phí vận chuyển",
+                            "total": shipping_cost
                         }
                     ]
                 }
