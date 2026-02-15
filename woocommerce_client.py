@@ -23,179 +23,162 @@ class WooCommerceClient:
             self.wcapi = None
             print("WooCommerce API Credentials missing")
 
-    def search_products(self, query, limit=5):
+    def search_products(self, query, limit=5, author=None):
         """
         Search products in WooCommerce by name.
         """
-        if not self.wcapi:
+        if not self.wcapi or not query:
             return []
 
+        from unidecode import unidecode
+        from thefuzz import fuzz
+        
+        results_dict = {} # Use dict to deduplicate by ID key
+        
+        # 1. Try Direct Slug Match first (Fastest & Most Accurate)
+        slug = unidecode(query).lower().replace(" ", "-")
         try:
-            results_dict = {} # Use dict to deduplicate by ID key
-            from unidecode import unidecode
-            
-            # 1. Try Exact Slug Match (High Precision)
-            # Useful for "Nhà giả kim" -> "nha-gia-kim"
-            slug = unidecode(query).lower().replace(" ", "-")
-            try:
-                slug_products = self.wcapi.get("products", params={"slug": slug}).json()
-                if isinstance(slug_products, list):
-                    for p in slug_products:
-                        results_dict[p['id']] = p
-            except Exception as e:
-                print(f"Slug Search Error: {e}")
+            slug_products = self.wcapi.get("products", params={"slug": slug}).json()
+            if isinstance(slug_products, list):
+                for p in slug_products:
+                    results_dict[p['id']] = p
+        except Exception as e:
+            print(f"Slug Search Error: {e}")
 
-            # 2. Loose Keyword Search (High Recall)
-            # Improve API search: Sort by 'relevance' (default) but requests often fail to rank well.
-            # Let's try fetching more and filtering client side, or use 'include' if we had tag inputs.
-            # Strategy:
-            # - Search with `orderby=relevance` (default)
-            # - ALSO Search with `orderby=popularity` (sales) to capture top sellers matching the keyword? 
-            #   No, API doesn't allow OR.
-            
-            # Let's just fetch a larger batch (100) to ensure we capture the item if it's buried.
-            # And maybe use a stricter search param if possible? No, 'search' is the only one.
-            
-            params = {
-                "search": query, 
-                "per_page": 50, # Increase limit
-                "status": "publish"
-            }
-            
+        # 2. Loose Keyword Search (High Recall)
+        params = {
+            "search": query, 
+            "per_page": 50, # Increase limit
+            "status": "publish"
+        }
+        
+        try:
             loose_products = self.wcapi.get("products", params=params).json()
             if isinstance(loose_products, list):
                 for p in loose_products:
                     if p['id'] not in results_dict:
                         results_dict[p['id']] = p
+        except Exception as e:
+             print(f"Loose Search Error: {e}")
+        
+        # Convert back to list
+        products = list(results_dict.values())
+        
+        results = []
+        for p in products:
+            # Extract image
+            image_url = "https://placehold.co/300x300?text=No+Image" # Default fallback
             
-            # Convert back to list
-            products = list(results_dict.values())
+            # Check standard images
+            if p.get("images") and len(p["images"]) > 0:
+                image_url = p["images"][0]["src"]
             
-            results = []
-            for p in products:
-                # Extract image
-                # Extract image
-                image_url = "https://placehold.co/300x300?text=No+Image" # Default fallback
-                
-                # Check standard images
-                if p.get("images") and len(p["images"]) > 0:
-                    image_url = p["images"][0]["src"]
-                
-                # Check Woo External Images (meta_data)
-                elif p.get("meta_data"):
-                    for meta in p["meta_data"]:
-                        if meta.get("key") == "_ext_featured_url" and meta.get("value"):
-                            image_url = meta["value"]
-                            break
-                            
-                # Clean description (remove HTML tags if needed, or keep for web)
-                # For simplicity, we just take the name and price for now
-                
-                # Safely extract price
-                try:
-                    price_val = int(float(p.get('price') or 0))
-                    price_fmt = f"{price_val:,}"
-                except (ValueError, TypeError):
-                    price_fmt = "0"
+            # Check Woo External Images (meta_data)
+            elif p.get("meta_data"):
+                for meta in p["meta_data"]:
+                    if meta.get("key") == "_ext_featured_url" and meta.get("value"):
+                        image_url = meta["value"]
+                        break
+                        
+            # Safely extract price
+            try:
+                price_val = int(float(p.get('price') or 0))
+                price_fmt = f"{price_val:,}"
+            except (ValueError, TypeError):
+                price_fmt = "0"
 
-                # Extract stock info safely
-                stock_status = p.get("stock_status", "instock") 
-                stock_quantity = p.get("stock_quantity")
-                
-                inventory_text = "Còn hàng"
-                if stock_status == "outofstock":
-                    inventory_text = "Hết hàng"
-                elif stock_status == "onbackorder":
-                    inventory_text = "Đặt trước"
-                elif stock_quantity is not None:
-                     inventory_text = f"Còn {stock_quantity}"
+            # Extract stock info safely
+            stock_status = p.get("stock_status", "instock") 
+            stock_quantity = p.get("stock_quantity")
+            
+            inventory_text = "Còn hàng"
+            if stock_status == "outofstock":
+                inventory_text = "Hết hàng"
+            elif stock_status == "onbackorder":
+                inventory_text = "Đặt trước"
+            elif stock_quantity is not None:
+                 inventory_text = f"Còn {stock_quantity}"
 
-                # Extract sales data
-                total_sales = p.get("total_sales", 0)
+            # Extract sales data
+            total_sales = p.get("total_sales", 0)
 
-                results.append({
-                    "title": p.get("name", "Sản phẩm không tên"),
-                    "price": price_fmt,
-                    "image": image_url,
-                    "url": p.get("permalink", "#"),
-                    "description": p.get("short_description", ""),
-                    "stock_status": stock_status,
-                    "inventory_text": inventory_text,
-                    "total_sales": total_sales,
-                    "id": p['id']
-                })
+            results.append({
+                "title": p.get("name", "Sản phẩm không tên"),
+                "price": price_fmt,
+                "image": image_url,
+                "url": p.get("permalink", "#"),
+                "description": p.get("short_description", ""),
+                "stock_status": stock_status,
+                "inventory_text": inventory_text,
+                "total_sales": total_sales,
+                "id": p['id']
+            })
+        
+        
+        # Fuzzy Sort Logic
+        query_norm = unidecode(query).lower()
+        
+        for index, p in enumerate(results):
+            title_norm = unidecode(p['title']).lower()
             
+            # Calculate scores
+            score = fuzz.token_set_ratio(query_norm, title_norm)
             
-            # Fuzzy Sort Logic
-            from thefuzz import fuzz
-            from unidecode import unidecode
-            
-            # Normalize query: remove accents, lowercase
-            query_norm = unidecode(query).lower()
-            
-            for index, p in enumerate(results):
-                title_norm = unidecode(p['title']).lower()
+            # Boost if exact substring match in title (after normalization)
+            if query_norm in title_norm:
+                score += 20 
                 
-                # Calculate scores
-                # 1. Token Set Ratio: Matches overlapping words efficiently (e.g. "sach giao khoa" matches "Giao trinh Sach Giao Khoa")
-                # 2. Partial Ratio: Matches substring
-                score = fuzz.token_set_ratio(query_norm, title_norm)
-                
-                # Boost if exact substring match in title (after normalization)
-                if query_norm in title_norm:
-                    score += 20 
-                    
-                # Cap at 100? No, let strict matches go higher (120) for sorting
-                p['_score'] = score
+            p['_score'] = score
+        
+        # Sort by score descending
+        results.sort(key=lambda x: x['_score'], reverse=True)
+        
+        # CHECK QUALITY
+        best_score = results[0]['_score'] if results else 0
+        
+        # FALLBACK STRATEGY: IF POOR MATCH (<60), TRY AGGRESSIVE SEARCH
+        if best_score < 60:
+            print(f"Low relevance ({best_score}). Trying Aggressive Fallback...")
             
-            # Sort by score descending
-            results.sort(key=lambda x: x['_score'], reverse=True)
-            
-            # CHECK QUALITY
-            best_score = results[0]['_score'] if results else 0
-            
-            # FALLBACK STRATEGY: IF POOR MATCH (<60), TRY AGGRESSIVE SEARCH
-            if best_score < 60:
-                print(f"Low relevance ({best_score}). Trying Aggressive Fallback...")
-                
-                # 1. Unaccented Search
-                try:
-                    query_un = unidecode(query)
-                    if query_un != query:
-                        un_params = {"search": query_un, "per_page": 20, "status": "publish"}
-                        un_products = self.wcapi.get("products", params=un_params).json()
-                        if isinstance(un_products, list):
-                            self._process_fallback_products(un_products, query_norm, results, results_dict)
-                except: pass
+            # 1. Unaccented Search
+            try:
+                query_un = unidecode(query)
+                if query_un != query:
+                    un_params = {"search": query_un, "per_page": 20, "status": "publish"}
+                    un_products = self.wcapi.get("products", params=un_params).json()
+                    if isinstance(un_products, list):
+                        self._process_fallback_products(un_products, query_norm, results, results_dict)
+            except: pass
 
-                # 2. Popularity Search (Client-side Filter)
-                try:
-                    pop_params = {
-                         "per_page": 100, # Increased from 50 to 100
-                         "orderby": "popularity",
-                         "status": "publish"
-                    }
-                    pop_products = self.wcapi.get("products", params=pop_params).json()
-                    
-                    if isinstance(pop_products, list):
-                        self._process_fallback_products(pop_products, query_norm, results, results_dict)
-                except Exception as e:
-                    print(f"Fallback Popularity Error: {e}")
-                    
-                # 3. Newest Search (Client-side Filter - incase new item)
-                try:
-                    new_params = {
-                         "per_page": 100, # Increased from 50 to 100
-                         "orderby": "date",
-                         "status": "publish"
-                    }
-                    new_products = self.wcapi.get("products", params=new_params).json()
-                    if isinstance(new_products, list):
-                        self._process_fallback_products(new_products, query_norm, results, results_dict)
-                except: pass
+            # 2. Popularity Search (Client-side Filter)
+            try:
+                pop_params = {
+                     "per_page": 100, 
+                     "orderby": "popularity",
+                     "status": "publish"
+                }
+                pop_products = self.wcapi.get("products", params=pop_params).json()
+                
+                if isinstance(pop_products, list):
+                    self._process_fallback_products(pop_products, query_norm, results, results_dict)
+            except Exception as e:
+                print(f"Propularity Search Error: {e}")
+
+            # 3. Newest Search (Client-side Filter - incase new item)
+            try:
+                new_params = {
+                     "per_page": 100,
+                     "orderby": "date",
+                     "order": "desc",
+                     "status": "publish"
+                }
+                new_products = self.wcapi.get("products", params=new_params).json()
+                
+                if isinstance(new_products, list):
+                   self._process_fallback_products(new_products, query_norm, results, results_dict)
+            except: pass
             
             # 4. SPECIFIC KEYWORD FIX (For broken search index on server)
-            # "Đắc Nhân Tâm" fails on search, but "Dale Carnegie" works.
             # Normalize check:
             check_key = query_norm.replace("-", " ")
             
@@ -217,6 +200,16 @@ class WooCommerceClient:
                         self._process_fallback_products(auth_products, query_norm, results, results_dict)
                  except: pass
 
+            # 5. AI-INFERRED AUTHOR FALLBACK (The General Mechanism)
+            if author and best_score < 70:
+                 try:
+                    print(f"Triggering Author Fallback: '{author}'")
+                    auth_params = {"search": author, "per_page": 20, "status": "publish"}
+                    auth_products = self.wcapi.get("products", params=auth_params).json()
+                    if isinstance(auth_products, list):
+                        self._process_fallback_products(auth_products, query_norm, results, results_dict)
+                 except: pass
+
             # Re-sort after fallback: 
             # 1. Stock Status (instock > others)
             # 2. Score (descending)
@@ -229,10 +222,6 @@ class WooCommerceClient:
             results.sort(key=lambda x: (stock_priority(x), -x['_score']))
             
             return results[:limit]
-        except Exception as e:
-            print(f"WooCommerce Search Error: {e}")
-            return []
-
     def _process_fallback_products(self, product_list, query_norm, results, results_dict):
         """Helper to process and score fallback products"""
         from unidecode import unidecode

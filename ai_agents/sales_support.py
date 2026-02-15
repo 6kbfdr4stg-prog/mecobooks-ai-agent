@@ -21,6 +21,23 @@ class SalesSupportAgent:
         except FileNotFoundError:
             self.knowledge_base = "Chưa có thông tin cửa hàng."
 
+    def _infer_author(self, book_title):
+        """Ask LLM to identify the author of the book."""
+        try:
+            # Simple prompt to extract author
+            prompt = f"Ai là tác giả của cuốn sách '{book_title}'? Chỉ trả về tên tác giả, không thêm nội dung nào khác. Nếu không biết hoặc không chắc, trả về 'Unknown'."
+            author = self.bot.llm.generate_response(prompt).strip()
+            
+            # Basic validation
+            if not author or "Unknown" in author or len(author) > 50 or "tác giả" in author.lower(): 
+                return None
+                
+            print(f"🤖 AI Inferred Author for '{book_title}': {author}")
+            return author.replace(".", "") # Clean up commonly added periods
+        except Exception as e:
+            print(f"Author Inference Error: {e}")
+            return None
+
     def handle_customer_query(self, query, user_id="guest"):
         """
         Enhanced query handler with State Management for Order Collection.
@@ -252,8 +269,12 @@ class SalesSupportAgent:
              if len(target_book) < 2:
                  return "Bạn muốn mua sách nào ạ? (Ví dụ: Mua sách Nhà Giả Kim)"
             
-             # Search to get ID
-             products = self.woo.search_products(target_book, limit=1)
+             # AI: Infer Author
+             author_guess = self._infer_author(target_book)
+             
+             # Search with fallback
+             products = self.woo.search_products(target_book, limit=1, author=author_guess)
+             
              if products:
                  product = products[0]
                  # Start collecting info
@@ -274,11 +295,15 @@ class SalesSupportAgent:
             return "Dạ bạn cho mình xin Mã đơn hàng (ví dụ: #12345) để mình kiểm tra ngay nhé!"
 
         # Standard Consulting Flow (Existing Logic)
-        intent_check = ["có sách", "còn sách", "tìm sách", "giá sách", "mua sách"]
+        intent_check = ["có sách", "còn sách", "tìm sách", "giá sách", "mua sách", "tìm cuốn", "có cuốn", "tìm quyển", "có quyển", "tư vấn", "hỏi về"]
         if any(phrase in query.lower() for phrase in intent_check):
             # Extract potential book name (naive approach)
             # Better approach: asking LLM to extract entity
-            products = self.woo.search_products(query, limit=3)
+            
+            # Infer Author from Query (assuming query is book name for now)
+            author_guess = self._infer_author(query)
+            
+            products = self.woo.search_products(query, limit=3, author=author_guess)
             
             if products:
                 # Context injection
