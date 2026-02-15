@@ -372,8 +372,10 @@
   haravanUploadBtn.addEventListener('click', () => haravanImageInput.click());
 
   haravanImageInput.addEventListener('change', (e) => {
-    if (e.target.files && e.target.files[0]) {
-      handleImageSelect(e.target.files[0]);
+    if (e.target.files) {
+      if (e.target.files[0]) {
+        handleImageSelect(e.target.files[0]);
+      }
     }
   });
 
@@ -409,7 +411,9 @@
   async function sendHMessage() {
     const input = document.getElementById('haravan-chat-input');
     const text = input.value.trim();
-    if (!text && !selectedImageFile) return;
+    if (!text) {
+      if (!selectedImageFile) return;
+    }
 
     // Display User Message
     if (selectedImageFile) {
@@ -436,8 +440,10 @@
       // If there's text, send it. If only image, send placeholder text "Gửi ảnh" so backend validation passes
       // If there's text AND image, send the text.
       let messageContent = text;
-      if (!text && selectedImageFile) {
-        messageContent = "Gửi ảnh";
+      if (!text) {
+        if (selectedImageFile) {
+          messageContent = "Gửi ảnh";
+        }
       }
 
       formData.append('message', messageContent);
