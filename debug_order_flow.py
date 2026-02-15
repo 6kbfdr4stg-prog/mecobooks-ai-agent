@@ -48,5 +48,21 @@ def test_order_flow():
     response = agent.handle_customer_query("Ok chốt đơn", user_id=user_id)
     print(f"Agent: {response}")
 
+    # 6. User Tracking
+    # Extract order id from prev step if possible, hardcode for now or regex
+    import re
+    match = re.search(r'#(\d+)', response)
+    if match:
+        order_id = match.group(1)
+        print(f"\n[Step 6] User tracks order #{order_id}")
+        
+        # 6a. Ask to track
+        res1 = agent.handle_customer_query("Kiểm tra đơn hàng", user_id=user_id)
+        print(f"Agent: {res1}")
+        
+        # 6b. Provide ID
+        res2 = agent.handle_customer_query(order_id, user_id=user_id)
+        print(f"Agent: {res2}")
+
 if __name__ == "__main__":
     test_order_flow()

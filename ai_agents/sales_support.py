@@ -36,12 +36,66 @@ class SalesSupportAgent:
         
         # --- STATE MACHINE ---
         
-        # 1. STATE: COLLECTING_NAME
         if state == "COLLECTING_NAME":
             data["name"] = query
             self.conversations[user_id]["state"] = "COLLECTING_PHONE"
             return "Cảm ơn bạn. Cho mình xin số điện thoại để liên hệ giao hàng nhé!"
             
+        # 1.5 STATE: TRACKING_ORDER
+        elif state == "TRACKING_ORDER":
+            import re
+            # Extract number from query like "#123456" or "123456"
+            # If user just says number, assume it's ID.
+            # If user cancels, exit.
+            
+            if any(w in query.lower() for w in ["hủy", "không", "thôi"]):
+                 self.conversations[user_id] = {"state": "NORMAL", "data": {}}
+                 return "Dạ vâng, mình đã hủy tra cứu. Bạn cần hỗ trợ gì khác không ạ?"
+            
+            # Extract digits
+            order_id = "".join(filter(str.isdigit, query))
+            
+            if not order_id:
+                return "Mình chưa tìm thấy mã số nào trong tin nhắn. Bạn vui lòng nhập lại Mã đơn hàng (ví dụ: 25310) giúp mình nhé!"
+            
+            # Fetch Order
+            order = self.woo.get_order_by_id(order_id)
+            if order:
+                # Format response
+                status_trans = {
+                    "pending": "Chờ thanh toán",
+                    "processing": "Đang xử lý (Đang chuẩn bị hàng)",
+                    "on-hold": "Tạm giữ",
+                    "completed": "Đã hoàn thành",
+                    "cancelled": "Đã hủy",
+                    "refunded": "Đã hoàn tiền",
+                    "failed": "Thất bại",
+                    "trash": "Đã xóa"
+                }
+                status_vn = status_trans.get(order['status'], order['status'])
+                total = f"{int(float(order['total'])):,} VNĐ"
+                
+                # List items
+                items_str = ", ".join([f"{item['name']} (x{item['quantity']})" for item in order['line_items']])
+                
+                response = f"""
+                📦 **THÔNG TIN ĐƠN HÀNG #{order['id']}**
+                - Trạng thái: **{status_vn}**
+                - Tổng tiền: {total}
+                - Sản phẩm: {items_str}
+                """
+                
+                if order['status'] == 'pending':
+                    response += "\n\n⚠️ Đơn hàng đang chờ thanh toán. Shop sẽ sớm liên hệ xác nhận ạ."
+                elif order['status'] == 'completed':
+                    response += "\n\n✅ Đơn hàng đã giao thành công! Bạn hãy đánh giá 5 sao cho Shop nếu hài lòng nhé! ⭐"
+                
+                # Reset state
+                self.conversations[user_id] = {"state": "NORMAL", "data": {}}
+                return response
+            else:
+                 return f"Hệ thống không tìm thấy đơn hàng mã #{order_id}. Bạn kiểm tra lại giúp mình xem có nhầm lẫn không nhé?"
+
         # 2. STATE: COLLECTING_PHONE
         elif state == "COLLECTING_PHONE":
             import re
@@ -213,6 +267,12 @@ class SalesSupportAgent:
              else:
                  return "Hiện tại mình chưa tìm thấy cuốn sách đó. Bạn kiểm tra lại tên sách giúp mình nhé."
         
+        # Detect Tracking Intent
+        tracking_keywords = ["kiểm tra đơn", "tra cứu đơn", "bao giờ có hàng", "đơn hàng của tôi", "xem đơn hàng", "tình trạng đơn"]
+        if any(w in query_lower for w in tracking_keywords):
+            self.conversations[user_id]["state"] = "TRACKING_ORDER"
+            return "Dạ bạn cho mình xin Mã đơn hàng (ví dụ: #12345) để mình kiểm tra ngay nhé!"
+
         # Standard Consulting Flow (Existing Logic)
         intent_check = ["có sách", "còn sách", "tìm sách", "giá sách", "mua sách"]
         if any(phrase in query.lower() for phrase in intent_check):

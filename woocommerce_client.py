@@ -199,3 +199,20 @@ class WooCommerceClient:
         except Exception as e:
             print(f"WooCommerce Get Products Error: {e}")
             return []
+
+    def get_order_by_id(self, order_id):
+        """
+        Fetch a specific order by ID.
+        """
+        if not self.wcapi: return None
+        
+        try:
+            # Remove # if present
+            clean_id = str(order_id).replace("#", "").strip()
+            response = self.wcapi.get(f"orders/{clean_id}").json()
+            if 'id' in response:
+                return response
+            return None
+        except Exception as e:
+            print(f"WooCommerce Get Order Error: {e}")
+            return None
