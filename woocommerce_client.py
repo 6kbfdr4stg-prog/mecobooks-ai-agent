@@ -206,8 +206,16 @@ class WooCommerceClient:
                         self._process_fallback_products(auth_products, query_norm, results, results_dict)
                  except: pass
 
-            # Re-sort after fallback
-            results.sort(key=lambda x: x['_score'], reverse=True)
+            # Re-sort after fallback: 
+            # 1. Stock Status (instock > others)
+            # 2. Score (descending)
+            def stock_priority(item):
+                status = item.get('stock_status', 'outofstock')
+                if status == 'instock': return 0
+                if status == 'onbackorder': return 1
+                return 2
+
+            results.sort(key=lambda x: (stock_priority(x), -x['_score']))
             
             return results[:limit]
         except Exception as e:
@@ -242,11 +250,17 @@ class WooCommerceClient:
                     # Process and add
                     inventory_text = "Còn hàng" 
                     if p.get("stock_status") == "outofstock": inventory_text = "Hết hàng"
+                    elif p.get("stock_status") == "onbackorder": inventory_text = "Đặt trước"
                     
                     # Extract image
                     image_url = "https://placehold.co/300x300?text=No+Image"
                     if p.get("images") and len(p["images"]) > 0:
                         image_url = p["images"][0]["src"]
+                    elif p.get("meta_data"):
+                         for meta in p["meta_data"]:
+                            if meta.get("key") == "_ext_featured_url" and meta.get("value"):
+                                image_url = meta["value"]
+                                break
                     
                     new_item = {
                         "title": p.get("name", ""),
