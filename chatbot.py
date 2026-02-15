@@ -151,8 +151,6 @@ class Chatbot:
                 products = unique_products
 
                 if platform == "facebook":
-            if products:
-                if platform == "facebook":
                     # Return list of elements for Generic Template
                     elements = []
                     for p in products:
