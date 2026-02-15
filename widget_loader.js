@@ -462,7 +462,18 @@
         }
       }
 
+      // Generate or retrieve Session ID
+      let sessionId = localStorage.getItem('haravan_chat_session_id');
+      if (!sessionId) {
+        sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+          var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+        localStorage.setItem('haravan_chat_session_id', sessionId);
+      }
+
       formData.append('message', messageContent);
+      formData.append('user_id', sessionId);
 
       if (currentImageFile) {
         formData.append('file', currentImageFile);

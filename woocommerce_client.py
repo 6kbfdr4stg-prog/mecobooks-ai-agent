@@ -160,3 +160,21 @@ class WooCommerceClient:
         except Exception as e:
             print(f"WooCommerce Order Fetch Error: {e}")
             return []
+
+    def create_order(self, data):
+        """
+        Create a new order in WooCommerce.
+        data: dict containing 'line_items', 'billing', 'shipping'
+        """
+        if not self.wcapi: return None
+        
+        try:
+            response = self.wcapi.post("orders", data).json()
+            if 'id' in response:
+                return response
+            else:
+                print(f"WooCommerce Order Creation Failed: {response}")
+                return None
+        except Exception as e:
+            print(f"WooCommerce Order Creation Error: {e}")
+            return None

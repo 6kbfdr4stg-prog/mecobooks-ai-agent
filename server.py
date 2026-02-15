@@ -32,6 +32,10 @@ except Exception as e:
 
 class ChatResponse(BaseModel):
     response: str
+    
+class ChatRequest(BaseModel):
+    message: str
+    user_id: str = "guest"
 
 # Facebook Config
 FB_VERIFY_TOKEN = os.environ.get("FB_VERIFY_TOKEN", "my_secure_verify_token")
@@ -42,7 +46,17 @@ def read_root():
     return {"status": "ok", "message": "Haravan AI Chatbot is running"}
 
 @app.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(message: str = Form(...), file: UploadFile = File(None)):
+async def chat_endpoint(
+    message: str = Form(None), 
+    user_id: str = Form("guest"),
+    file: UploadFile = File(None)
+):
+    # Support both Form data (for file upload compat) and JSON if needed in future
+    # Currently Widget uses FormData
+    
+    if not message and not file:
+         raise HTTPException(status_code=400, detail="Message or File required")
+
     if not bot:
         raise HTTPException(status_code=500, detail="Chatbot not initialized properly")
     
@@ -52,7 +66,7 @@ async def chat_endpoint(message: str = Form(...), file: UploadFile = File(None))
             print(f"Received file: {file.filename}")
             image_data = await file.read()
             
-        response_text = bot.process_message(message, image_data=image_data)
+        response_text = bot.process_message(message or "", image_data=image_data, user_id=user_id)
         return {"response": response_text}
     except Exception as e:
         import traceback
