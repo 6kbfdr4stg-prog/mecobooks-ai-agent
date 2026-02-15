@@ -233,6 +233,7 @@ def startup_event():
     # Start scheduler in a separate thread
     t = threading.Thread(target=run_scheduler, daemon=True)
     t.start()
+    print("🚀 SERVER RESTARTED WITH FIX v2 - CHATBOT CHECK")
 
 @app.post("/debug/trigger-content")
 async def trigger_content(background_tasks: BackgroundTasks):
