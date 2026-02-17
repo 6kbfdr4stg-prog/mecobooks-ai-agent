@@ -23,6 +23,25 @@ class WooCommerceClient:
             self.wcapi = None
             print("WooCommerce API Credentials missing")
 
+    def get_tag_id_by_name(self, tag_name):
+        """
+        Find a WooCommerce Tag ID by its name (case-insensitive).
+        """
+        if not self.wcapi: return None
+        try:
+            params = {"search": tag_name, "per_page": 10}
+            tags = self.wcapi.get("products/tags", params=params).json()
+            if isinstance(tags, list):
+                from unidecode import unidecode
+                tag_name_norm = unidecode(tag_name).lower()
+                for t in tags:
+                    if unidecode(t['name']).lower() == tag_name_norm:
+                        return t['id']
+            return None
+        except Exception as e:
+            print(f"Tag Search Error: {e}")
+            return None
+
     def search_products(self, query, limit=5, author=None):
         """
         Search products in WooCommerce by name.
@@ -61,6 +80,23 @@ class WooCommerceClient:
         except Exception as e:
              print(f"Loose Search Error: {e}")
         
+        # 3. TAG SEARCH (New Fallback for Authors)
+        # If query or author matches a tag, pull products for that tag
+        tag_search_term = author if author else query
+        tag_id = self.get_tag_id_by_name(tag_search_term)
+        if tag_id:
+            try:
+                print(f"🏷️ Found Tag ID {tag_id} for '{tag_search_term}'. Fetching tagged products...")
+                tag_products = self.wcapi.get("products", params={"tag": tag_id, "per_page": 20, "status": "publish"}).json()
+                if isinstance(tag_products, list):
+                    for p in tag_products:
+                        if p['id'] not in results_dict:
+                            # Boost products from tag search
+                            p['_tag_boost'] = True 
+                            results_dict[p['id']] = p
+            except Exception as e:
+                print(f"Tag Products Fetch Error: {e}")
+
         # Convert back to list
         products = list(results_dict.values())
         
@@ -127,6 +163,10 @@ class WooCommerceClient:
             # Boost if exact substring match in title (after normalization)
             if query_norm in title_norm:
                 score += 20 
+                
+            # Tag Boost
+            if p.get('_tag_boost'):
+                score += 40 # Significant boost for tag matches
                 
             p['_score'] = score
         
@@ -210,9 +250,7 @@ class WooCommerceClient:
                         self._process_fallback_products(auth_products, query_norm, results, results_dict)
                  except: pass
 
-            # Re-sort after fallback: 
-            # 1. Stock Status (instock > others)
-            # 2. Score (descending)
+            # Re-sort after fallbacks
             def stock_priority(item):
                 status = item.get('stock_status', 'outofstock')
                 if status == 'instock': return 0
@@ -221,7 +259,7 @@ class WooCommerceClient:
 
             results.sort(key=lambda x: (stock_priority(x), -x['_score']))
             
-            return results[:limit]
+        return results[:limit]
     def _process_fallback_products(self, product_list, query_norm, results, results_dict):
         """Helper to process and score fallback products"""
         from unidecode import unidecode

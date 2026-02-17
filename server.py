@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request, Response, Form, File, UploadFile, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Request, Response, Form, File, UploadFile, BackgroundTasks, Body
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -40,6 +40,61 @@ class ChatRequest(BaseModel):
 # Facebook Config
 FB_VERIFY_TOKEN = os.environ.get("FB_VERIFY_TOKEN", "my_secure_verify_token")
 FB_PAGE_ACCESS_TOKEN = os.environ.get("FB_PAGE_ACCESS_TOKEN")
+
+@app.post("/run-agent")
+async def run_agent_endpoint(data: dict = Body(...)):
+    """
+    Endpoint for n8n/External triggers to run specific agents.
+    Ex: {"agent": "content_creator"}
+    """
+    agent_name = data.get("agent")
+    
+    # 1. Content Creator
+    if agent_name == "content_creator":
+        from ai_agents.content_creator import ContentCreatorAgent
+        agent = ContentCreatorAgent()
+        # Run in background to avoid timeout
+        import threading
+        threading.Thread(target=agent.run).start()
+        return {"status": "started", "agent": "content_creator"}
+        
+    # 2. Inventory Analyst
+    elif agent_name == "inventory_analyst":
+        from ai_agents.inventory_analyst import InventoryAnalystAgent
+        agent = InventoryAnalystAgent()
+        import threading
+        threading.Thread(target=agent.run).start()
+        return {"status": "started", "agent": "inventory_analyst"}
+        
+    # 3. Strategic Analyst
+    elif agent_name == "strategic_analyst":
+        from ai_agents.strategic_analyst import StrategicAnalystAgent
+        agent = StrategicAnalystAgent()
+        import threading
+        threading.Thread(target=agent.run).start()
+        return {"status": "started", "agent": "strategic_analyst"}
+        
+    # 4. Integrity Manager
+    elif agent_name == "integrity_manager":
+        from ai_agents.integrity_manager import IntegrityManagerAgent
+        agent = IntegrityManagerAgent()
+        import threading
+        threading.Thread(target=agent.run).start()
+        return {"status": "started", "agent": "integrity_manager"}
+    
+    # 5. Market Research
+    elif agent_name == "market_research":
+        from ai_agents.market_research import MarketResearchAgent
+        agent = MarketResearchAgent()
+        import threading
+        threading.Thread(target=agent.run).start()
+        return {"status": "started", "agent": "market_research"}
+        
+    return {"status": "error", "message": "Unknown agent"}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
 
 @app.get("/")
 def read_root():
@@ -228,7 +283,7 @@ from scheduler import job_create_content, job_email_marketing, job_analyze_inven
 # Actually, if I modify scheduler.py to not block on import, I can import it here.
 
 def run_scheduler():
-    from scheduler import job_create_content, job_email_marketing, job_analyze_inventory
+    from scheduler import job_create_content, job_email_marketing, job_analyze_inventory, job_market_research
     import schedule
     
     # Redefine schedule here to be safe and explicit
@@ -236,6 +291,7 @@ def run_scheduler():
     schedule.every().day.at("13:00").do(job_create_content) # 20:00 PM VN
     schedule.every().day.at("03:00").do(job_email_marketing) # 10:00 AM VN
     schedule.every().monday.at("01:00").do(job_analyze_inventory) # 08:00 AM VN
+    schedule.every(3).days.at("02:00").do(job_market_research) # 09:00 AM VN every 3 days
     
     print("🚀 [Server] Scheduler thread started...")
     while True:
@@ -276,4 +332,4 @@ async def list_videos():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run("server:app", host="0.0.0.0", port=port, reload=True)

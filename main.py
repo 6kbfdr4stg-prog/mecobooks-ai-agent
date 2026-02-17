@@ -1,35 +1,47 @@
-from haravan_client import HaravanClient
-from prepare_content import prepare_product_content
-from video_processor import generate_video
+import subprocess
+import time
+import sys
 import os
 
-def main():
-    # 1. Connect
-    print("Connecting to Haravan...")
-    client = HaravanClient()
-    
-    # 2. Get Products
-    products = client.get_products(limit=3) # Limit to 3 for testing
-    print(f"Found {len(products)} products.")
-    
-    for product in products:
-        try:
-            # 3. Extract & Prepare
-            p_data = client.extract_product_data(product)
-            content = prepare_product_content(p_data)
+def start_system():
+    print("🌟 [MASTER] Kích hoạt Hệ thống AI Agent - Tiệm Sách Anh Tuấn")
+    print("---------------------------------------------------------")
+
+    # 1. Start Server (Chatbot 24/7)
+    print("🚀 Khởi động Sales Support Server (Cổng 5001)...")
+    env = os.environ.copy()
+    env["PORT"] = "5001"
+    server_process = subprocess.Popen([sys.executable, "server.py"], env=env)
+
+    # 2. Wait for server to stabilize
+    time.sleep(3)
+
+    # 3. Start Scheduler (Background Agents: Content, Inventory, Strategy)
+    print("⏰ Khởi động Background Agent Scheduler...")
+    scheduler_process = subprocess.Popen([sys.executable, "scheduler.py"])
+
+    print("\n✅ Hệ thống đã sẵn sàng!")
+    print("- Chatbot: Hoạt động (Web/FB)")
+    print("- Scheduler: Đang chạy (Content/Inventory/Strategy)")
+    print("---------------------------------------------------------")
+
+    try:
+        while True:
+            # Monitor processes
+            if server_process.poll() is not None:
+                print("⚠️ Server stopped! Restarting...")
+                server_process = subprocess.Popen([sys.executable, "server.py"])
             
-            # 4. Generate Video
-            if content and content['images']:
-                 video_path = generate_video(content)
-                 if video_path:
-                     print(f"SUCCESS: Video created at {video_path}")
-                 else:
-                     print(f"FAILED: Could not create video for {content['title']}")
-            else:
-                 print(f"SKIPPING: No images or content for {p_data['title']}")
-                 
-        except Exception as e:
-            print(f"ERROR processing product {product.get('title')}: {e}")
+            if scheduler_process.poll() is not None:
+                print("⚠️ Scheduler stopped! Restarting...")
+                scheduler_process = subprocess.Popen([sys.executable, "scheduler.py"])
+                
+            time.sleep(10)
+    except KeyboardInterrupt:
+        print("\n🛑 Đang dừng hệ thống...")
+        server_process.terminate()
+        scheduler_process.terminate()
+        print("Done.")
 
 if __name__ == "__main__":
-    main()
+    start_system()

@@ -5,6 +5,7 @@ python-dotenv
 schedule
 woocommerce
 google-generativeai
+google-genai
 unidecode
 thefuzz
 jinja2
@@ -16,3 +17,4 @@ decorator==4.4.2
 gTTS
 imageio
 numpy
+psutil

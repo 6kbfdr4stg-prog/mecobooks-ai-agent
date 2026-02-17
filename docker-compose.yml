@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  ai-backend:
+    build: .
+    container_name: ai_flywheel_backend
+    restart: always
+    ports:
+      - "5001:5001"
+    volumes:
+      - .:/app
+    environment:
+      - PORT=5001
+      # Copy các biến từ .env vào đây hoặc để Docker tự load từ .env
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    command: tunnel --url http://ai-backend:5001
+    depends_on:
+      - ai-backend

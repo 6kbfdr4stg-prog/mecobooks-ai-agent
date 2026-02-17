@@ -7,9 +7,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from chatbot import Chatbot
 from woocommerce_client import WooCommerceClient
+from utils.logger import setup_logger
 
 class SalesSupportAgent:
     def __init__(self):
+        self.logger = setup_logger("sales_agent")
         self.bot = Chatbot()
         self.woo = WooCommerceClient()
         self.conversations = {} # Store state per user_id
@@ -33,9 +35,11 @@ class SalesSupportAgent:
                 return None
                 
             print(f"🤖 AI Inferred Author for '{book_title}': {author}")
+            self.logger.info(f"AI Inferred Author", extra={"metadata": {"book": book_title, "author": author}})
             return author.replace(".", "") # Clean up commonly added periods
         except Exception as e:
             print(f"Author Inference Error: {e}")
+            self.logger.error("Author Inference Error", exc_info=True)
             return None
 
     def handle_customer_query(self, query, user_id="guest"):
@@ -43,6 +47,7 @@ class SalesSupportAgent:
         Enhanced query handler with State Management for Order Collection.
         """
         print(f"🤖 [Sales Agent] Processing: '{query}' for User: {user_id}")
+        self.logger.info(f"Processing Query", extra={"metadata": {"user_id": user_id, "query": query, "event": "USER_QUERY"}})
         
         # Initialize state if new user
         if user_id not in self.conversations:
@@ -109,9 +114,13 @@ class SalesSupportAgent:
                 
                 # Reset state
                 self.conversations[user_id] = {"state": "NORMAL", "data": {}}
+                
+                self.logger.info(f"Bot Response (Order Info)", extra={"metadata": {"user_id": user_id, "response": response[:100], "order_id": order_id, "event": "BOT_RESPONSE"}})
                 return response
             else:
-                 return f"Hệ thống không tìm thấy đơn hàng mã #{order_id}. Bạn kiểm tra lại giúp mình xem có nhầm lẫn không nhé?"
+                 msg = f"Hệ thống không tìm thấy đơn hàng mã #{order_id}. Bạn kiểm tra lại giúp mình xem có nhầm lẫn không nhé?"
+                 self.logger.info(f"Bot Response (Order Not Found)", extra={"metadata": {"user_id": user_id, "response": msg, "event": "BOT_RESPONSE"}})
+                 return msg
 
         # 2. STATE: COLLECTING_PHONE
         elif state == "COLLECTING_PHONE":
@@ -213,6 +222,8 @@ class SalesSupportAgent:
                 new_order = self.woo.create_order(order_data)
                 
                 if new_order:
+                    # Log Conversion
+                    self.logger.info(f"Order Created", extra={"metadata": {"user_id": user_id, "order_id": new_order['id'], "total": order_data['shipping_lines'][0]['total'], "event": "CONVERSION"}})
                     # Reset State
                     self.conversations[user_id] = {"state": "NORMAL", "data": {}}
                     
@@ -277,6 +288,8 @@ class SalesSupportAgent:
              
              if products:
                  product = products[0]
+                 # Log successful search
+                 self.logger.info(f"Product Found", extra={"metadata": {"query": target_book, "product": product['title']}})
                  # Start collecting info
                  self.conversations[user_id]["state"] = "COLLECTING_NAME"
                  self.conversations[user_id]["data"] = {
@@ -297,54 +310,111 @@ class SalesSupportAgent:
         # Standard Consulting Flow (Existing Logic)
         intent_check = ["có sách", "còn sách", "tìm sách", "giá sách", "mua sách", "tìm cuốn", "có cuốn", "tìm quyển", "có quyển", "tư vấn", "hỏi về"]
         if any(phrase in query.lower() for phrase in intent_check):
-            # Extract potential book name (naive approach)
-            # Better approach: asking LLM to extract entity
-            
-            # Infer Author from Query (assuming query is book name for now)
+            # Infer Author
             author_guess = self._infer_author(query)
             
-            products = self.woo.search_products(query, limit=3, author=author_guess)
+            # Search
+            products = self.woo.search_products(query, limit=5, author=author_guess)
             
             if products:
-                # Context injection
-                product_context = "Thông tin sách tìm được:\n"
-                for p in products:
-                    product_context += f"- {p['title']}: {p['price']} VNĐ ({p['inventory_text']}) - Link: {p['url']}\n"
-                
-                system_instruction = "Bạn là nhân viên tư vấn của Tiệm Sách Anh Tuấn. Hãy trả lời khách dựa trên thông tin sách tìm được dưới đây. Khéo léo chốt đơn."
-                full_prompt = f"{system_instruction}\n\n{product_context}\n\nKhách hỏi: {query}"
-                response = self.bot.llm.generate_response(full_prompt)
-                return response
+                # Return structured data
+                return {
+                    "type": "product_list",
+                    "text": f"Dạ, mình tìm thấy {len(products)} cuốn sách phù hợp với yêu cầu của bạn nè:",
+                    "products": products
+                }
             else:
-                return self.bot.llm.generate_response(f"Khách hỏi: '{query}'. Khách hỏi về sách nhưng hệ thống tìm không thấy. Hãy xin lỗi và gợi ý họ nhắn tin Zalo để admin kiểm tra kỹ hơn.")
+                # If local search fails, ask LLM to chat nicely or fallback
+                # For now, just return text
+                response = self.bot.llm.generate_response(f"Khách hỏi: '{query}'. Khách hỏi về sách nhưng hệ thống tìm không thấy. Hãy xin lỗi và gợi ý họ nhắn tin Zalo để admin kiểm tra kỹ hơn.")
+                return {"type": "text", "text": response}
         
         # Default chat
-        # If not a specific sales query, fall back to standard chatbot processing
-        # But Chatbot.process_message handles everything including intent.
-        # So we might just want to return self.bot.process_message(query)
-        return self.bot.process_message(query)
+        res = self.bot.process_message(query)
+        # Check if LLM response looks like a product list? No, explicit search is better.
+        return {"type": "text", "text": res}
 
     def process_message(self, message, platform="web", image_url=None, image_data=None, user_id="guest"):
         """
         Wrapper to be compatible with server.py's expected interface.
-        Delegates to handle_customer_query for text-only messages on web/fb.
-        Hand off to internal bot for complex image handling if needed,
-        or just integrate logic here.
         """
-        # If there are images, we might want to bypass the simple sales logic 
-        # or pass it through. For now, let's use the internal bot's robust process_message
-        # if there are images, otherwise use our enhanced handler.
-        
         if image_url or image_data:
             return self.bot.process_message(message, platform, image_url, image_data)
         
-        # For text only, use our enhanced logic
-        # Note: handle_customer_query currently returns a string.
-        # server.py expects string or structured data (for FB).
-        # Our handle_customer_query logic mainly returns strings (via self.bot.chat)
-        # We should ensure return types align.
+        # Get structured response
+        response_data = self.handle_customer_query(message, user_id=user_id)
         
-        return self.handle_customer_query(message, user_id=user_id)
+        # If string (legacy or simple return), wrap it
+        if isinstance(response_data, str):
+            response_data = {"type": "text", "text": response_data}
+            
+        # Format for Platform
+        if platform == "web":
+            # Convert to HTML for the widget
+            if response_data.get("type") == "product_list":
+                html = f"<div class='h-bot-message' style='margin-bottom:10px;'>{response_data['text']}</div>"
+                html += "<div class='h-product-list' style='display:flex; flex-direction:column; gap:10px;'>"
+                
+                for p in response_data['products']:
+                    img = p.get('image', 'https://via.placeholder.com/150')
+                    price = p.get('price', 'Liên hệ')
+                    if price != "Liên hệ": price += "₫"
+                    title = p.get('title', 'Sản phẩm')
+                    link = p.get('url', '#')
+                    
+                    html += f"""
+                    <div class="h-product-row" style="display:flex; border:1px solid #eee; border-radius:8px; overflow:hidden; background:#fff; padding:8px; align-items:center; gap:10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <div style="width:70px; height:70px; flex-shrink:0; background:#f9f9f9; border-radius:4px; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+                            <img src="{img}" style="max-width:100%; max-height:100%; object-fit:contain;">
+                        </div>
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-weight:600; font-size:13px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#333;">{title}</div>
+                            <div style="color:#d32f2f; font-weight:bold; font-size:14px; margin-bottom:6px;">{price}</div>
+                            <a href="{link}" target="_blank" style="display:inline-block; background:#0084ff; color:white; padding:3px 10px; border-radius:4px; text-decoration:none; font-size:11px; font-weight:500;">Xem chi tiết</a>
+                        </div>
+                    </div>
+                    """
+                html += "</div>"
+                return html
+            else:
+                return response_data["text"]
+
+        elif platform == "facebook":
+            # Convert to Generic Template
+            if response_data.get("type") == "product_list":
+                elements = []
+                for p in response_data['products'][:10]: # FB limit 10
+                    img = p.get('image', '')
+                    price = p.get('price', 'Liên hệ')
+                    if price != "Liên hệ": price += "₫"
+                    
+                    elements.append({
+                        "title": p.get('title', 'Sản phẩm'),
+                        "image_url": img,
+                        "subtitle": f"Giá: {price}",
+                        "default_action": {
+                            "type": "web_url",
+                            "url": p.get('url', '#'),
+                            "webview_height_ratio": "tall",
+                        },
+                        "buttons": [
+                            {
+                                "type": "web_url",
+                                "url": p.get('url', '#'),
+                                "title": "Xem trên Web"
+                            },
+                             {
+                                "type": "postback",
+                                "title": "Mua ngay",
+                                "payload": f"BUY_{p.get('id', '0')}"
+                            }
+                        ]
+                    })
+                return elements # create_server will wrap this in attachment
+            else:
+                return response_data["text"]
+        
+        return response_data["text"]
 
 if __name__ == "__main__":
     agent = SalesSupportAgent()

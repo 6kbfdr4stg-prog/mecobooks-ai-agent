@@ -1,7 +1,7 @@
 [THÔNG TIN CỬA HÀNG]
 Tên shop: Tiệm Sách Anh Tuấn
 Website: https://mecobooks.com
-Slogan: Sách hay mỗi ngày
+Slogan: Mecobooks - Vũ trụ sách
 
 [LIÊN HỆ]
 Địa chỉ: số 3 đường X Louis Đại Mỗ - Hà Nội

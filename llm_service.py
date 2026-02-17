@@ -1,46 +1,51 @@
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import os
 from config import GEMINI_API_KEY
 
 class LLMService:
     def __init__(self, api_key=GEMINI_API_KEY):
         if not api_key or api_key == "YOUR_GEMINI_API_KEY_HERE":
-            # Try getting from environment variable as fallback
             api_key = os.getenv("GEMINI_API_KEY")
         
         if not api_key:
             raise ValueError("Gemini API Key is missing. Please set it in config.py or environment variable GEMINI_API_KEY.")
 
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        # Initialize the modern Client
+        self.client = genai.Client(api_key=api_key)
+        self.model_name = 'gemini-2.0-flash'
 
     def generate_response(self, prompt, image_data=None, system_instruction=None):
         """
-        Generates a response from the LLM.
-        :param prompt: Text prompt
-        :param image_data: Optional PIL Image object or bytes
-        :param system_instruction: Optional system instruction to guide the LLM
+        Generates a response from the LLM using the modern google-genai SDK.
+        Supports automatic Google Search grounding.
         """
         try:
-            full_prompt = prompt
-            if system_instruction:
-                full_prompt = f"{system_instruction}\n\n{prompt}"
-
+            contents = [prompt]
             if image_data:
-                # Multimodal request
-                response = self.model.generate_content([full_prompt, image_data])
-            else:
-                # Text-only request
-                response = self.model.generate_content(full_prompt)
+                # Handle image data (assuming it's a PIL Image or compatible format)
+                contents.append(image_data)
+
+            # Modern tools configuration for Google Search grounding
+            config = types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                tools=[types.Tool(google_search=types.GoogleSearch())]
+            )
+
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=contents,
+                config=config
+            )
             return response.text
         except Exception as e:
             print(f"Error calling Gemini API: {e}")
-            return "Xin lỗi, tôi đang gặp sự cố khi kết nối với AI."
-            
+            return f"Xin lỗi, tôi đang gặp sự cố khi kết nối với AI: {str(e)}"
+
 if __name__ == "__main__":
-    # Test
+    # Test execution
     try:
         service = LLMService()
-        print(service.generate_response("Hello, are you working?"))
+        print(service.generate_response("Hôm nay là ngày bao nhiêu và có sự kiện gì hot?"))
     except Exception as e:
         print(f"Setup failed: {e}")

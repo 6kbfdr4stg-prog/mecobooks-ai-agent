@@ -29,11 +29,11 @@ class ContentCreatorAgent:
             print(f"⚠️ News Fetch Error: {e}")
         return []
 
-    def generate_daily_content(self, platform="facebook"):
+    def generate_daily_content(self, platform="facebook", target_product=None):
         """
         Main function to generate daily content.
         1. Checks for Trending News (Newsjacking).
-        2. Picks a product relevant to trend OR random.
+        2. Picks a product: target_product OR search based on strategic need.
         3. Generates a caption using LLM.
         """
         print(f"🤖 [Content Agent] Starting daily content generation for {platform}...")
@@ -50,15 +50,16 @@ class ContentCreatorAgent:
             trend_context = f"\nSự kiện/Tin tức đang hot: '{selected_trend}'"
 
         # 2. Select Product
-        # Ideal: Search woo based on trend. For now, random or specific keyword based on trend (advanced)
-        # Simplified: Pick random product but link story to proper trend
-        products = self.woo.search_products("sách", limit=20)
+        if target_product:
+            product = target_product
+        else:
+            # Fallback to search
+            products = self.woo.search_products("sách", limit=20)
+            if not products:
+                return "⚠️ [Content Agent] No products found to promote."
+            import random
+            product = random.choice(products)
         
-        if not products:
-            return "⚠️ [Content Agent] No products found to promote."
-
-        import random
-        product = random.choice(products)
         print(f"   Selected Product: {product['title']}")
  
         # 3. Generate Caption
