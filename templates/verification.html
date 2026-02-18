@@ -103,34 +103,7 @@
     </div>
 
     <script>
-        async def testEmail() {
-            const btn = document.getElementById('btn-email');
-            const res = document.getElementById('res-email');
-
-            btn.disabled = true;
-            btn.innerHTML = '<span class="loader"></span> Sending...';
-            res.classList.add('hidden');
-
-            try {
-                const response = await fetch('/test-email');
-                const data = await response.json();
-
-                res.innerHTML = `<strong>Status:</strong> ${data.status}<br><strong>Message:</strong> ${data.message}`;
-                res.classList.remove('hidden');
-
-                if (data.status === 'sent') res.classList.add('text-green-600');
-                else res.classList.add('text-red-600');
-
-            } catch (error) {
-                res.innerHTML = 'Error: ' + error.message;
-                res.classList.remove('hidden');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = 'Send Test Email';
-            }
-        }
-
-        // Correct javascript function definition
+        // Email test function
         window.testEmail = async function () {
             const btn = document.getElementById('btn-email');
             const res = document.getElementById('res-email');
