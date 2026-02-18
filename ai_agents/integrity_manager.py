@@ -11,6 +11,13 @@ class IntegrityManagerAgent:
         self.logger = logging.getLogger("integrity_manager")
         self.reports_dir = "/app/reports" if os.path.exists("/app") else "reports"
         os.makedirs(self.reports_dir, exist_ok=True)
+        # Email Notifier
+        try:
+            from utils.email_notifier import EmailNotifier
+            self.notifier = EmailNotifier()
+        except ImportError:
+            self.notifier = None
+            print("⚠️ Could not import EmailNotifier")
 
     def check_health_endpoint(self, url="http://localhost:5001/health"):
         """Checks if the internal server is responding."""
@@ -106,6 +113,15 @@ class IntegrityManagerAgent:
         actions = self.perform_healing(results)
         report_path = self.generate_report(results, actions)
         print(f"✅ [Integrity Agent] Đã hoàn thành. Báo cáo lưu tại: {report_path}")
+        
+        # Send Email
+        if self.notifier:
+            with open(report_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            # Simple conversion for email
+            html_content = f"<html><body><pre>{content}</pre></body></html>"
+            self.notifier.send_report("🛡️ [Integrity] Báo cáo Hệ thống", html_content)
+            
         return report_path
 
 if __name__ == "__main__":

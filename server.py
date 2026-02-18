@@ -18,6 +18,29 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
+# --- Background Scheduler Integration ---
+import threading
+import time
+import schedule
+import scheduler  # This imports the job definitions from scheduler.py
+
+def run_scheduler_loop():
+    print("⏳ [Background] Scheduler loop started...")
+    while True:
+        try:
+            schedule.run_pending()
+        except Exception as e:
+            print(f"❌ [Background] Scheduler Error: {e}")
+        time.sleep(60)
+
+@app.on_event("startup")
+async def start_scheduler():
+    # Start the scheduler in a separate daemon thread
+    t = threading.Thread(target=run_scheduler_loop, daemon=True)
+    t.start()
+    print("✅ [System] Scheduler thread launched.")
+# ----------------------------------------
+
 from fastapi.staticfiles import StaticFiles
 # Mount static directory for videos
 os.makedirs("static", exist_ok=True)
@@ -303,7 +326,7 @@ def startup_event():
     # Start scheduler in a separate thread
     t = threading.Thread(target=run_scheduler, daemon=True)
     t.start()
-    print("🚀 SERVER RESTARTED WITH FIX v2 - CHATBOT CHECK")
+    print("🚀 SERVER RESTARTED WITH FIX v3 - VERIFICATION DASHBOARD")
 
 @app.post("/debug/trigger-content")
 async def trigger_content(background_tasks: BackgroundTasks):
@@ -329,6 +352,87 @@ async def list_videos():
         "count": len(video_files),
         "params": [f"https://mecobooks-ai.onrender.com/static/videos/{f}" for f in video_files]
     }
+
+@app.get("/test-email")
+async def test_email_endpoint(email: str = None):
+    """
+    Manually trigger a test email to verify SMTP settings.
+    Usage: /test-email?email=user@example.com (or default to owner)
+    """
+    from utils.email_notifier import EmailNotifier
+    notifier = EmailNotifier()
+    try:
+        subject = "🧪 [Manual Test] Kiểm tra hệ thống Email từ Server"
+        body = """
+        <html><body>
+        <h2 style="color: green;">Email Test Thành Công!</h2>
+        <p>Đây là email được gửi thủ công từ endpoint <code>/test-email</code> trên Render.</p>
+        <p>Hệ thống gửi nhận hoạt động tốt.</p>
+        </body></html>
+        """
+        # Run in thread to not block
+        import threading
+        t = threading.Thread(target=notifier.send_report, args=(subject, body, email))
+        t.start()
+        
+        return {"status": "sent", "message": "Email is being sent in background."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/run-agent-sync/{agent_name}")
+async def run_agent_sync(agent_name: str):
+    """
+    Runs an agent synchronously and returns the result/report.
+    """
+    try:
+        result = None
+        
+        if agent_name == "content_creator":
+            from ai_agents.content_creator import ContentCreatorAgent
+            agent = ContentCreatorAgent()
+            result = agent.run()
+            
+        elif agent_name == "inventory_analyst":
+            from ai_agents.inventory_analyst import InventoryAnalystAgent
+            agent = InventoryAnalystAgent()
+            result = agent.run()
+            
+        elif agent_name == "market_research":
+            from ai_agents.market_research import MarketResearchAgent
+            agent = MarketResearchAgent()
+            result = agent.run()
+            
+        elif agent_name == "integrity_manager":
+            from ai_agents.integrity_manager import IntegrityManagerAgent
+            agent = IntegrityManagerAgent()
+            report_path = agent.run()
+            # Read the report content
+            if os.path.exists(report_path):
+                with open(report_path, "r", encoding="utf-8") as f:
+                    result = {"report_path": report_path, "content": f.read()}
+            else:
+                result = {"report_path": report_path, "content": "Report file not found."}
+        
+        else:
+             raise HTTPException(status_code=400, detail="Unknown agent")
+
+        return {"status": "success", "agent": agent_name, "output": result}
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}
+
+@app.get("/verify", response_class=HTMLResponse)
+async def verification_dashboard():
+    """
+    Serves the Verification Dashboard.
+    """
+    try:
+        with open("templates/verification.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return "<h1>Verification Dashboard Not Found</h1><p>Please ensure templates/verification.html exists.</p>"
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))

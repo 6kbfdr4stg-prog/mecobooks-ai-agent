@@ -88,6 +88,18 @@ class InventoryAnalystAgent:
         if report["missing_images"]:
             plan += f"⚠️ **Cảnh báo**: Có {len(report['missing_images'])} sản phẩm thiếu ảnh, ảnh hưởng tỷ lệ chuyển đổi.\n"
 
+        # Send Email Report
+        if self.notifier:
+            html_plan = plan.replace("\n", "<br>")
+            self.notifier.send_report("📊 [Inventory] Báo cáo Tồn kho & Đề xuất", f"<html><body>{html_plan}</body></html>")
+
+        return plan
+
+    def run(self):
+        """Standardized run method for the agent."""
+        print("🚀 [Inventory Agent] Triggered via run()...")
+        report = self.analyze_stock()
+        plan = self.generate_action_plan(report)
         return plan
 
 if __name__ == "__main__":

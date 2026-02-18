@@ -13,6 +13,12 @@ class MarketResearchAgent:
     def __init__(self):
         self.logger = setup_logger("market_research_agent")
         self.bot = Chatbot()
+        # Email Notifier
+        try:
+            from utils.email_notifier import EmailNotifier
+            self.notifier = EmailNotifier()
+        except ImportError:
+            self.notifier = None
         # Use absolute path to ensure consistency between local/docker/manual execution
         self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.report_dir = os.path.join(self.project_root, "reports")
@@ -64,10 +70,16 @@ class MarketResearchAgent:
 
             # 3. Export to Sheets (via n8n)
             self.parse_and_export(report_content)
+            
+            return {
+                "report_path": report_path,
+                "content": report_content
+            }
 
         except Exception as e:
             print(f"❌ [Market Research Agent] Error: {e}")
             self.logger.error("Market Research Error", exc_info=True)
+            return {"error": str(e)}
 
     def parse_and_export(self, markdown_text):
         """
@@ -226,6 +238,19 @@ class MarketResearchAgent:
                 print(f"Response: {response.text}")
         except Exception as e:
             print(f"❌ Exception sending request to WordPress: {e}")
+
+        # Email Notification
+        if self.notifier:
+            subject = "📈 [Research] Báo cáo Xu hướng Sách mới"
+            body = f"""
+            <html><body>
+            <h3>Nghiên cứu thị trường hoàn tất!</h3>
+            <p>Đã tìm thấy {len(data_rows)} cuốn sách hot.</p>
+            <p>Dữ liệu đã được gửi về Google Sheets và đăng lên Blog Mecobooks.</p>
+            <pre>{markdown_text[:500]}...</pre>
+            </body></html>
+            """
+            self.notifier.send_report(subject, body)
 
 
 if __name__ == "__main__":

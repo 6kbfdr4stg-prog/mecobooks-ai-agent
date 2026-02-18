@@ -13,6 +13,12 @@ class ContentCreatorAgent:
     def __init__(self):
         self.woo = WooCommerceClient()
         self.llm = LLMService()
+        # Email Notifier
+        try:
+            from utils.email_notifier import EmailNotifier
+            self.notifier = EmailNotifier()
+        except ImportError:
+            self.notifier = None
 
     def get_trending_news(self):
         """
@@ -161,6 +167,28 @@ class ContentCreatorAgent:
         except Exception as e:
             print(f"❌ [Content Agent] Error sending to Webhook: {e}")
 
+        # Email Notification
+        if self.notifier:
+            subject = f"✨ [Content] Bài viết mới: {content['product']['title']}"
+            body = f"""
+            <html><body>
+            <h3>Đã tạo nội dung mới!</h3>
+            <p><b>Sản phẩm:</b> {content['product']['title']}</p>
+            <p><b>Caption:</b> <br>{content['caption'].replace(chr(10), '<br>')}</p>
+            <p><b>Video Script:</b> <br>{content.get('video_script', '').replace(chr(10), '<br>')}</p>
+            <img src="{content['image_url']}" width="300">
+            </body></html>
+            """
+            self.notifier.send_report(subject, body)
+
+
+    def run(self):
+        """Standardized run method for the agent."""
+        print("🚀 [Content Agent] Triggered via run()...")
+        content = self.generate_daily_content()
+        if content and isinstance(content, dict):
+            self.send_to_webhook(content)
+        return content
 
 if __name__ == "__main__":
     agent = ContentCreatorAgent()

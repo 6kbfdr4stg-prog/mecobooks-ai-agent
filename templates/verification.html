@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mecobooks AI Agent Verification</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 2s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-2 text-blue-800">🤖 Mecobooks AI Verification Dashboard</h1>
+        <p class="text-gray-600 mb-8">Kích hoạt và kiểm tra kết quả đầu ra của các AI Agent ngay lập tức.</p>
+
+        <!-- Email Test -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6 border-l-4 border-green-500">
+            <h2 class="text-xl font-semibold mb-2">📧 Email Reporting</h2>
+            <p class="text-sm text-gray-500 mb-4">Gửi email test để kiểm tra kết nối SMTP.</p>
+            <button onclick="testEmail()" id="btn-email"
+                class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center">
+                Send Test Email
+            </button>
+            <div id="res-email" class="mt-4 hidden p-4 bg-gray-50 rounded text-sm font-mono"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Content Creator -->
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-500">
+                <h2 class="text-xl font-semibold mb-2">✍️ Content Creator</h2>
+                <p class="text-sm text-gray-500 mb-4">Viết content, tạo script video từ sản phẩm ngẫu nhiên.</p>
+                <button onclick="runAgent('content_creator')" id="btn-content_creator"
+                    class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 flex items-center">
+                    Run Content Agent
+                </button>
+                <div id="res-content_creator" class="mt-4 hidden p-4 bg-gray-50 rounded text-sm overflow-auto max-h-60">
+                </div>
+            </div>
+
+            <!-- Market Research -->
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+                <h2 class="text-xl font-semibold mb-2">📈 Market Research</h2>
+                <p class="text-sm text-gray-500 mb-4">Nghiên cứu trend sách, xuất dữ liệu và đăng bài blog.</p>
+                <button onclick="runAgent('market_research')" id="btn-market_research"
+                    class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center">
+                    Run Research Agent
+                </button>
+                <div id="res-market_research" class="mt-4 hidden p-4 bg-gray-50 rounded text-sm overflow-auto max-h-60">
+                </div>
+            </div>
+
+            <!-- Inventory -->
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
+                <h2 class="text-xl font-semibold mb-2">📦 Inventory Analyst</h2>
+                <p class="text-sm text-gray-500 mb-4">Phân tích tồn kho ABC và lập kế hoạch nhập hàng.</p>
+                <button onclick="runAgent('inventory_analyst')" id="btn-inventory_analyst"
+                    class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 flex items-center">
+                    Run Inventory Agent
+                </button>
+                <div id="res-inventory_analyst"
+                    class="mt-4 hidden p-4 bg-gray-50 rounded text-sm overflow-auto max-h-60"></div>
+            </div>
+
+            <!-- Integrity -->
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500">
+                <h2 class="text-xl font-semibold mb-2">🛡️ Integrity Manager</h2>
+                <p class="text-sm text-gray-500 mb-4">Kiểm tra sức khỏe hệ thống (Disk, Memory, Server).</p>
+                <button onclick="runAgent('integrity_manager')" id="btn-integrity_manager"
+                    class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 flex items-center">
+                    Run System Check
+                </button>
+                <div id="res-integrity_manager"
+                    class="mt-4 hidden p-4 bg-gray-50 rounded text-sm overflow-auto max-h-60"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async def testEmail() {
+            const btn = document.getElementById('btn-email');
+            const res = document.getElementById('res-email');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loader"></span> Sending...';
+            res.classList.add('hidden');
+
+            try {
+                const response = await fetch('/test-email');
+                const data = await response.json();
+
+                res.innerHTML = `<strong>Status:</strong> ${data.status}<br><strong>Message:</strong> ${data.message}`;
+                res.classList.remove('hidden');
+
+                if (data.status === 'sent') res.classList.add('text-green-600');
+                else res.classList.add('text-red-600');
+
+            } catch (error) {
+                res.innerHTML = 'Error: ' + error.message;
+                res.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Send Test Email';
+            }
+        }
+
+        // Correct javascript function definition
+        window.testEmail = async function () {
+            const btn = document.getElementById('btn-email');
+            const res = document.getElementById('res-email');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loader"></span> Sending...';
+            res.classList.add('hidden');
+
+            try {
+                const response = await fetch('/test-email');
+                const data = await response.json();
+
+                res.innerHTML = `<strong>Status:</strong> ${data.status}<br><strong>Message:</strong> ${data.message}`;
+                res.classList.remove('hidden');
+
+            } catch (error) {
+                res.innerHTML = 'Error: ' + error.message;
+                res.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Send Test Email';
+            }
+        }
+
+        async function runAgent(agentName) {
+            const btn = document.getElementById(`btn-${agentName}`);
+            const res = document.getElementById(`res-${agentName}`);
+
+            btn.disabled = true;
+            const originalText = btn.innerText;
+            btn.innerHTML = '<span class="loader"></span> Running...';
+            res.classList.add('hidden');
+
+            try {
+                const response = await fetch(`/run-agent-sync/${agentName}`, { method: 'POST' });
+                const data = await response.json();
+
+                let outputHtml = '';
+                if (data.status === 'success') {
+                    if (typeof data.output === 'string') {
+                        // Likely markdown or plain text
+                        outputHtml = marked.parse(data.output);
+                    } else if (typeof data.output === 'object') {
+                        // Check for specific fields
+                        if (data.output.content) {
+                            outputHtml = marked.parse(data.output.content);
+                        } else if (data.output.caption) {
+                            outputHtml = `<strong>Caption:</strong><br>${data.output.caption.replace(/\n/g, '<br>')}<br><br><strong>Video Script:</strong><br>${data.output.video_script}`;
+                            if (data.output.image_url) outputHtml += `<br><img src="${data.output.image_url}" class="mt-2 w-32">`;
+                        } else {
+                            outputHtml = `<pre>${JSON.stringify(data.output, null, 2)}</pre>`;
+                        }
+                    }
+                } else {
+                    outputHtml = `<span class="text-red-600">Error: ${data.message}</span>`;
+                }
+
+                res.innerHTML = outputHtml;
+                res.classList.remove('hidden');
+
+            } catch (error) {
+                res.innerHTML = 'Error: ' + error.message;
+                res.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+    </script>
+</body>
+
+</html>
