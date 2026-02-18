@@ -158,9 +158,9 @@ class MarketResearchAgent:
                 print(f"❌ [Market Research Agent] Error exporting data: {e}")
 
         # 4. Generate & Send Blog Post (WordPress direct API)
-        self.publish_blog_post(data_rows)
+        self.publish_blog_post(data_rows, markdown_text)
 
-    def publish_blog_post(self, data_rows):
+    def publish_blog_post(self, data_rows, markdown_text=""):
         """Generates an HTML blog post and publishes directly to WordPress API."""
         import requests
         import base64

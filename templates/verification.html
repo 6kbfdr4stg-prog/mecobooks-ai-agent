@@ -118,6 +118,8 @@
 
                 res.innerHTML = `<strong>Status:</strong> ${data.status}<br><strong>Message:</strong> ${data.message}`;
                 res.classList.remove('hidden');
+                res.classList.remove('text-green-600', 'text-red-600');
+                res.classList.add(data.status === 'success' ? 'text-green-600' : 'text-red-600');
 
             } catch (error) {
                 res.innerHTML = 'Error: ' + error.message;

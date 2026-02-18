@@ -359,8 +359,22 @@ async def test_email_endpoint(email: str = None):
     Manually trigger a test email to verify SMTP settings.
     Usage: /test-email?email=user@example.com (or default to owner)
     """
-    from utils.email_notifier import EmailNotifier
-    notifier = EmailNotifier()
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
+    sender_email = os.environ.get("EMAIL_SENDER")
+    sender_password = os.environ.get("EMAIL_PASSWORD")
+
+    # Check env vars first
+    if not sender_email or not sender_password:
+        return {
+            "status": "error",
+            "message": f"Missing environment variables. EMAIL_SENDER={'SET' if sender_email else 'MISSING'}, EMAIL_PASSWORD={'SET' if sender_password else 'MISSING'}"
+        }
+
+    recipient = email or sender_email
+
     try:
         subject = "🧪 [Manual Test] Kiểm tra hệ thống Email từ Server"
         body = """
@@ -370,14 +384,25 @@ async def test_email_endpoint(email: str = None):
         <p>Hệ thống gửi nhận hoạt động tốt.</p>
         </body></html>
         """
-        # Run in thread to not block
-        import threading
-        t = threading.Thread(target=notifier.send_report, args=(subject, body, email))
-        t.start()
-        
-        return {"status": "sent", "message": "Email is being sent in background."}
+
+        msg = MIMEMultipart()
+        msg['From'] = sender_email
+        msg['To'] = recipient
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'html'))
+
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.sendmail(sender_email, recipient, msg.as_string())
+        server.quit()
+
+        return {"status": "success", "message": f"✅ Email sent successfully to {recipient}"}
+
+    except smtplib.SMTPAuthenticationError as e:
+        return {"status": "error", "message": f"SMTP Authentication Failed. Check EMAIL_PASSWORD (use Gmail App Password, not regular password). Detail: {e}"}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "message": f"Failed to send email: {str(e)}"}
 
 @app.post("/run-agent-sync/{agent_name}")
 async def run_agent_sync(agent_name: str):
