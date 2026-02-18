@@ -353,56 +353,60 @@ async def list_videos():
         "params": [f"https://mecobooks-ai.onrender.com/static/videos/{f}" for f in video_files]
     }
 
-@app.get("/test-email")
-async def test_email_endpoint(email: str = None):
-    """
-    Manually trigger a test email to verify SMTP settings.
-    Usage: /test-email?email=user@example.com (or default to owner)
-    """
-    import smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
+@app.get("/api/reports")
+async def list_reports():
+    """List all saved reports with metadata."""
+    import glob
+    from datetime import datetime as dt
+    
+    report_dir = "reports"
+    if not os.path.exists(report_dir):
+        return {"reports": []}
+    
+    reports = []
+    for filepath in sorted(glob.glob(os.path.join(report_dir, "*.md")), key=os.path.getmtime, reverse=True):
+        filename = os.path.basename(filepath)
+        if filename == "README.md":
+            continue
+        stat = os.stat(filepath)
+        size_kb = round(stat.st_size / 1024, 1)
+        modified = dt.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Friendly name from filename
+        name = filename.replace("_latest.md", "").replace("_", " ").title()
+        
+        reports.append({
+            "filename": filename,
+            "name": name,
+            "modified": modified,
+            "size_kb": size_kb
+        })
+    
+    return {"reports": reports}
 
-    sender_email = os.environ.get("EMAIL_SENDER")
-    sender_password = os.environ.get("EMAIL_PASSWORD")
-
-    # Check env vars first
-    if not sender_email or not sender_password:
-        return {
-            "status": "error",
-            "message": f"Missing environment variables. EMAIL_SENDER={'SET' if sender_email else 'MISSING'}, EMAIL_PASSWORD={'SET' if sender_password else 'MISSING'}"
-        }
-
-    recipient = email or sender_email
-
-    try:
-        subject = "🧪 [Manual Test] Kiểm tra hệ thống Email từ Server"
-        body = """
-        <html><body>
-        <h2 style="color: green;">Email Test Thành Công!</h2>
-        <p>Đây là email được gửi thủ công từ endpoint <code>/test-email</code> trên Render.</p>
-        <p>Hệ thống gửi nhận hoạt động tốt.</p>
-        </body></html>
-        """
-
-        msg = MIMEMultipart()
-        msg['From'] = sender_email
-        msg['To'] = recipient
-        msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'html'))
-
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login(sender_email, sender_password)
-        server.sendmail(sender_email, recipient, msg.as_string())
-        server.quit()
-
-        return {"status": "success", "message": f"✅ Email sent successfully to {recipient}"}
-
-    except smtplib.SMTPAuthenticationError as e:
-        return {"status": "error", "message": f"SMTP Authentication Failed. Check EMAIL_PASSWORD (use Gmail App Password, not regular password). Detail: {e}"}
-    except Exception as e:
-        return {"status": "error", "message": f"Failed to send email: {str(e)}"}
+@app.get("/api/reports/{filename}")
+async def get_report(filename: str):
+    """Read content of a specific report file."""
+    # Security: prevent path traversal
+    if ".." in filename or "/" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
+    filepath = os.path.join("reports", filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f.read()
+    
+    stat = os.stat(filepath)
+    from datetime import datetime as dt
+    modified = dt.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+    
+    return {
+        "filename": filename,
+        "modified": modified,
+        "content": content
+    }
 
 @app.post("/run-agent-sync/{agent_name}")
 async def run_agent_sync(agent_name: str):
