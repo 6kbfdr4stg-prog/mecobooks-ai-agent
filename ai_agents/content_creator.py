@@ -186,9 +186,28 @@ class ContentCreatorAgent:
         """Standardized run method for the agent."""
         print("🚀 [Content Agent] Triggered via run()...")
         content = self.generate_daily_content()
+        
         if content and isinstance(content, dict):
+            # Send to webhook/email as before
             self.send_to_webhook(content)
-        return content
+            
+            # Format as Markdown String for Database/Dashboard
+            md_output = f"# ✍️ Marketing Content: {content['product']['title']}\n\n"
+            md_output += f"**Sản phẩm:** {content['product']['title']}\n"
+            md_output += f"**Giá:** {content['product']['price']} VNĐ\n\n"
+            
+            md_output += f"### 📱 Facebook/Instagram Caption\n\n"
+            md_output += f"{content['caption']}\n\n"
+            
+            md_output += f"### 🎬 Video Script (Shorts/Reels)\n\n"
+            md_output += f"{content['video_script']}\n\n"
+            
+            md_output += f"---\n"
+            md_output += f"*Nội dung được tạo tự động bởi Mecobooks AI Agent.*"
+            
+            return md_output
+            
+        return "⚠️ [Content Agent] No content generated."
 
 if __name__ == "__main__":
     agent = ContentCreatorAgent()
