@@ -137,7 +137,7 @@ class HaravanClient:
         params = {
             "created_at_min": start_date.isoformat(),
             "status": "any",
-            "fields": "total_price,created_at"
+            "fields": "total_price,created_at,email"
         }
         
         try:
@@ -159,6 +159,25 @@ class HaravanClient:
             return {"total_sales": 0, "total_orders": 0, "total_customers": 0}
 
     def search_order(self, query):
+        """
+        Search for an order by name (e.g., #1001) or email.
+        """
+        endpoint = f"{self.shop_url}/admin/orders.json"
+        # If query starts with #, strip it
+        name = query.replace("#", "")
+        params = {
+            "name": name,
+            "status": "any",
+             "fields": "id,name,email,financial_status,fulfillment_status,total_price,line_items,created_at"
+        }
+        try:
+            response = requests.get(endpoint, headers=self.headers, params=params)
+            response.raise_for_status()
+            orders = response.json().get('orders', [])
+            return orders
+        except requests.exceptions.RequestException as e:
+            print(f"Error searching order {query}: {e}")
+            return []
 
 if __name__ == "__main__":
     # Test the client
