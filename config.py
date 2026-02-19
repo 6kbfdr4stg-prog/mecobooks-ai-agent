@@ -11,10 +11,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Gemini API Configuration
-# API Key is now loaded from Environment Variables for security
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDnse9_RdID7rB5qgdemYJ_Ip_9qkAKX3o")
-# TTS sometimes uses the same key, but let's provide the specific one if available
-GOOGLE_TTS_API_KEY = os.environ.get("GOOGLE_TTS_API_KEY", GEMINI_API_KEY)
+# Fallback hardcoded values (Known Good)
+FALLBACK_GEMINI_KEY = "AIzaSyDnse9_RdID7rB5qgdemYJ_Ip_9qkAKX3o"
+FALLBACK_TTS_KEY = "AIzaSyBsXsKTO_g4tUVmKxNW1JPlOpLNGxGBIqE"
+
+def get_valid_key(env_name, fallback):
+    key = os.environ.get(env_name, "").strip()
+    if len(key) < 39:
+        if key:
+            print(f"⚠️ Warning: {env_name} looks truncated ({len(key)} chars). Using internal fallback.")
+        return fallback
+    return key
+
+GEMINI_API_KEY = get_valid_key("GEMINI_API_KEY", FALLBACK_GEMINI_KEY)
+GOOGLE_TTS_API_KEY = get_valid_key("GOOGLE_TTS_API_KEY", GEMINI_API_KEY)
+# Double check: if GOOGLE_TTS_API_KEY is still too short (e.g if GEMINI_API_KEY was the truncated one), 
+# use the specific TTS fallback
+if len(GOOGLE_TTS_API_KEY) < 39:
+    GOOGLE_TTS_API_KEY = FALLBACK_TTS_KEY
 
 
 # Video Generation Config
