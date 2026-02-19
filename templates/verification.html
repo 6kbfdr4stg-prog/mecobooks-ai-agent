@@ -345,7 +345,12 @@
                 const data = await response.json();
 
                 date.textContent = `Cập nhật: ${data.modified}`;
-                content.innerHTML = marked.parse(data.content);
+                
+                if (!data.content || data.content.trim() === '') {
+                    content.innerHTML = '<div class="text-center py-8 text-gray-500 flex flex-col items-center"><span class="text-4xl mb-2">📭</span><p>Báo cáo này chưa có nội dung.</p></div>';
+                } else {
+                    content.innerHTML = marked.parse(data.content);
+                }
             } catch (error) {
                 content.innerHTML = `<p class="text-red-500">Lỗi: ${error.message}</p>`;
             }
