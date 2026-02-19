@@ -12,7 +12,7 @@ load_dotenv()
 
 # Gemini API Configuration
 # API Key is now loaded from Environment Variables for security
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDnse9_RdID7rB5qgdemYJ_Ip_9qkAKX3o")
 
 
 # Video Generation Config
