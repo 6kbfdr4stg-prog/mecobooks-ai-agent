@@ -103,9 +103,16 @@ class VideoProcessor:
         }
 
         try:
-            response = requests.post(url, json=payload, timeout=20)
-            response.raise_for_status()
+            # Debug: Log masked key
+            masked_key = GOOGLE_TTS_API_KEY[:5] + "..." + GOOGLE_TTS_API_KEY[-4:] if GOOGLE_TTS_API_KEY else "None"
+            print(f"📡 Calling Google TTS API (Key: {masked_key})")
             
+            response = requests.post(url, json=payload, timeout=20)
+            
+            if response.status_code != 200:
+                print(f"❌ Google TTS API Error {response.status_code}: {response.text}")
+                return None
+                
             audio_content = response.json().get("audioContent")
             if not audio_content:
                 print("❌ No audio content returned from Google TTS")
@@ -119,7 +126,7 @@ class VideoProcessor:
             return temp_audio
             
         except Exception as e:
-            print(f"TTS API Error: {e}")
+            print(f"TTS Exception: {e}")
             return None
 
     def _ken_burns_zoom(self, clip, zoom_ratio=1.1):

@@ -13,7 +13,8 @@ load_dotenv()
 # Gemini API Configuration
 # API Key is now loaded from Environment Variables for security
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDnse9_RdID7rB5qgdemYJ_Ip_9qkAKX3o")
-GOOGLE_TTS_API_KEY = os.environ.get("GOOGLE_TTS_API_KEY", "AIzaSyBsXsKTO_g4tUVmKxNW1JPlOpLNGxGBIqE")
+# TTS sometimes uses the same key, but let's provide the specific one if available
+GOOGLE_TTS_API_KEY = os.environ.get("GOOGLE_TTS_API_KEY", GEMINI_API_KEY)
 
 
 # Video Generation Config

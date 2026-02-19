@@ -600,11 +600,15 @@ async def generate_video_api(report_id: int, username: str = Depends(get_current
     woo = WooCommerceClient()
     # Search with a cleaner title to improve hits and speed
     search_query = title.split("(")[0].strip()
+    print(f"🔍 Searching WooCommerce for: {search_query} (Original: {title})")
     products = woo.search_products(search_query, limit=1)
     
     image_url = "https://placehold.co/1080x1920?text=MecoBooks+AI"
     if products:
+        print(f"✅ Found product: {products[0]['name']}")
         image_url = products[0]['image']
+    else:
+        print(f"⚠️ No product found for '{search_query}'. Using fallback image.")
     
     # Run Video Generation
     try:
@@ -619,9 +623,11 @@ async def generate_video_api(report_id: int, username: str = Depends(get_current
         }
         
         # Run in thread to avoid blocking FastAPI
+        print(f"🎞️ Starting video processing for record {report_id}...")
         output_path = await asyncio.to_thread(vp.generate_video, video_data)
         
         if output_path and os.path.exists(output_path):
+            print(f"✅ Video created successfully: {output_path}")
             # Dynamic URL based on host
             video_url = f"/static/videos/{os.path.basename(output_path)}"
             
@@ -635,7 +641,8 @@ async def generate_video_api(report_id: int, username: str = Depends(get_current
                 
             return {"status": "success", "video_url": video_url}
         else:
-            return {"status": "error", "message": "Video generation failed"}
+            print(f"❌ Video generation failed for {report_id}")
+            return {"status": "error", "message": "Video generation failed. Please check server logs for details."}
             
     except Exception as e:
         print(f"Video API Error: {e}")
