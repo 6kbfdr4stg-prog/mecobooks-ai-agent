@@ -142,9 +142,13 @@
             bottom: 0;
             background: rgba(0, 0, 0, 0.5);
             z-index: 50;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
         }
 
         .badge {
@@ -253,7 +257,7 @@
     </div>
 
     <!-- Report Modal -->
-    <div id="report-modal" class="modal-overlay hidden" onclick="closeModal(event)">
+    <div id="report-modal" class="modal-overlay" onclick="closeModal(event)">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden mx-4"
             onclick="event.stopPropagation()">
             <div class="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
@@ -261,7 +265,7 @@
                     <h3 id="modal-title" class="font-semibold text-gray-800"></h3>
                     <p id="modal-date" class="text-xs text-gray-400"></p>
                 </div>
-                <button onclick="document.getElementById('report-modal').classList.add('hidden')"
+                <button onclick="document.getElementById('report-modal').classList.remove('active')"
                     class="text-gray-400 hover:text-gray-600 text-xl font-bold px-2">✕</button>
             </div>
             <div id="modal-content" class="p-6 overflow-auto report-content" style="max-height: 70vh;"></div>
@@ -338,7 +342,7 @@
             title.textContent = name;
             date.textContent = 'Đang tải...';
             content.innerHTML = '<div class="flex justify-center py-8"><span class="loader" style="border-top-color:#3b82f6; border-color:#e5e7eb; width:24px; height:24px;"></span></div>';
-            modal.classList.remove('hidden');
+            modal.classList.add('active');
 
             try {
                 const response = await fetch(`/api/reports/${filename}`);
@@ -358,7 +362,7 @@
 
         function closeModal(e) {
             if (e.target === e.currentTarget) {
-                document.getElementById('report-modal').classList.add('hidden');
+                document.getElementById('report-modal').classList.remove('active');
             }
         }
 
