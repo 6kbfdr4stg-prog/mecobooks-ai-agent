@@ -427,10 +427,11 @@ class WooCommerceClient:
         # WooCommerce per_page max is 100
         safe_limit = min(limit, 100)
         try:
-            products = self.wcapi.get("products", params={"per_page": safe_limit, "status": "publish"}).json()
+            response = self.wcapi.get("products", params={"per_page": safe_limit})
+            raw_data = response.json()
             inventory = []
-            if isinstance(products, list):
-                for p in products:
+            if isinstance(raw_data, list):
+                for p in raw_data:
                     inventory.append({
                         "id": p['id'],
                         "name": p['name'],
@@ -440,6 +441,8 @@ class WooCommerceClient:
                         "manage_stock": p.get('manage_stock', False),
                         "total_sales": p.get('total_sales', 0)
                     })
+            else:
+                print(f"⚠️ WooCommerce API returned object instead of list: {str(raw_data)[:200]}")
             return inventory
         except Exception as e:
             print(f"WooCommerce Get Inventory Error: {e}")

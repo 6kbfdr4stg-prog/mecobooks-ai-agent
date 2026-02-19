@@ -51,7 +51,9 @@ class InventoryOpsAgent:
             if raw_sku:
                 sku = str(raw_sku).strip().upper()
                 w_inventory[sku] = item
-        print(f"✅ Fetched {len(w_inventory)} products from WooCommerce.")
+        
+        inventory_sample = list(w_inventory.keys())[:3]
+        print(f"✅ Fetched {len(w_inventory)} products from WooCommerce. Samples: {inventory_sample}")
         
         results = {
             "synced": [],
