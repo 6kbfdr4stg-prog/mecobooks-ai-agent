@@ -5,11 +5,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from config import WOO_URL, WOO_CONSUMER_KEY, WOO_CONSUMER_SECRET
+
 class WooCommerceClient:
     def __init__(self):
-        self.url = os.environ.get("WOO_URL", "https://mecobooks.com")
-        self.key = os.environ.get("WOO_CONSUMER_KEY")
-        self.secret = os.environ.get("WOO_CONSUMER_SECRET")
+        self.url = os.environ.get("WOO_URL", WOO_URL)
+        self.key = os.environ.get("WOO_CONSUMER_KEY", WOO_CONSUMER_KEY)
+        self.secret = os.environ.get("WOO_CONSUMER_SECRET", WOO_CONSUMER_SECRET)
         
         if self.key and self.secret:
             self.wcapi = API(
