@@ -549,10 +549,11 @@ async def run_agent_sync(agent_name: str, username: str = Depends(get_current_us
         # Send Telegram Notification
         try:
             from ai_agents.telegram_client import send_telegram_message
-            # Clean HTML for telegram
-            clean_content = content.replace("<", "&lt;").replace(">", "&gt;")
-            snippet = clean_content[:200] + "..." if len(clean_content) > 200 else clean_content
-            message = f"✅ <b>Report Generated: {agent_name}</b>\n\n{snippet}\n\n<a href='https://mecobooks-ai-agent.onrender.com/verify'>Xem trên Dashboard</a>"
+            import html
+            # Escape HTML for telegram
+            clean_snippet = html.escape(content[:400]) + ("..." if len(content) > 400 else "")
+            
+            message = f"✅ <b>Report Generated: {agent_name}</b>\n\n{clean_snippet}\n\n<a href='https://mecobooks-ai-agent.onrender.com/verify'>Xem trên Dashboard</a>"
             send_telegram_message(message)
         except Exception as e:
             print(f"Failed to send Telegram notification: {e}")

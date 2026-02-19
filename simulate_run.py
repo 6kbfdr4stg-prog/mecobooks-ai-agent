@@ -53,8 +53,9 @@ Cuốn sách **"Đắc Nhân Tâm"** không chỉ là một tựa sách bán ch�
 
     # 3. Gửi Telegram
     try:
-        snippet = md_content[:200] + "..."
-        message = f"🚀 **[DEMO] Report Generated: {agent_name}**\n\n{snippet}\n\n[Xem trên Dashboard](https://mecobooks-ai-agent.onrender.com/verify)"
+        import html
+        clean_snippet = html.escape(md_content[:400]) + "..."
+        message = f"🚀 <b>[DEMO] Report Generated: {agent_name}</b>\n\n{clean_snippet}\n\n<a href='https://mecobooks-ai-agent.onrender.com/verify'>Xem trên Dashboard</a>"
         send_telegram_message(message)
         print("✅ Đã gửi thông báo Telegram.")
     except Exception as e:
