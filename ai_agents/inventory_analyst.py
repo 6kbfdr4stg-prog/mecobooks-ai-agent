@@ -10,6 +10,13 @@ from woocommerce_client import WooCommerceClient
 class InventoryAnalystAgent:
     def __init__(self):
         self.woo = WooCommerceClient()
+        # Email Notifier
+        try:
+            from utils.email_notifier import EmailNotifier
+            self.notifier = EmailNotifier()
+        except ImportError:
+            self.notifier = None
+            print("⚠️ [Inventory] EmailNotifier not found. Skipping email reports.")
 
     def analyze_stock(self):
         """
