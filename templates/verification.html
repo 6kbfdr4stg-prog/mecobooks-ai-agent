@@ -430,12 +430,18 @@
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden mx-4 flex flex-col"
             onclick="event.stopPropagation()">
             <div class="flex items-center justify-between px-6 py-4 border-b bg-gray-50 shrink-0">
-                <div>
+                <div class="flex-1">
                     <h3 id="modal-title" class="font-bold text-gray-900 text-lg"></h3>
                     <p id="modal-date" class="text-xs text-gray-500"></p>
                 </div>
-                <button onclick="document.getElementById('report-modal').classList.remove('active')"
-                    class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 hover:bg-gray-300 flex items-center justify-center transition">✕</button>
+                <div class="flex items-center gap-3">
+                    <button id="btn-gen-video"
+                        class="hidden bg-purple-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-700 transition flex items-center gap-2">
+                        🎞️ Tạo Video TikTok/Reels
+                    </button>
+                    <button onclick="document.getElementById('report-modal').classList.remove('active')"
+                        class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 hover:bg-gray-300 flex items-center justify-center transition">✕</button>
+                </div>
             </div>
             <div id="modal-content" class="p-8 overflow-auto report-content flex-1 max-h-[80vh]"></div>
         </div>
@@ -589,11 +595,19 @@
             currentReportId = reportId;
             title.textContent = name;
             date.textContent = 'Đang tải dữ liệu...';
-            
-            // Clear existing video button if any (safety)
-            const oldBtn = document.getElementById('btn-gen-video');
-            if (oldBtn) oldBtn.remove();
-            
+
+            // Handle Video Button
+            const btnGen = document.getElementById('btn-gen-video');
+            if (btnGen) {
+                btnGen.classList.add('hidden');
+                btnGen.innerHTML = '🎞️ Tạo Video TikTok/Reels';
+                btnGen.classList.remove('bg-green-600');
+                btnGen.classList.add('bg-purple-600');
+                btnGen.disabled = false;
+                btnGen.classList.remove('opacity-50', 'cursor-not-allowed');
+                btnGen.onclick = () => generateVideo(reportId);
+            }
+
             content.innerHTML = '<div class="flex justify-center py-12"><span class="loader" style="width: 32px; height: 32px; border-width: 4px; border-color: #e5e7eb; border-top-color: #3b82f6;"></span></div>';
             modal.classList.add('active');
 
@@ -607,16 +621,10 @@
                     content.innerHTML = '<div class="text-center py-12 text-gray-400 flex flex-col items-center"><span class="text-5xl mb-3 grayscale opacity-50">📄</span><p>Báo cáo này chưa có nội dung.</p></div>';
                 } else {
                     content.innerHTML = marked.parse(data.content);
-                    
-                    // Add Video Button if it's a Content Creator report
-                    if (name.toLowerCase().includes('content')) {
-                        const header = modal.querySelector('.border-b');
-                        const btn = document.createElement('button');
-                        btn.id = 'btn-gen-video';
-                        btn.className = 'ml-4 bg-purple-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-700 transition flex items-center gap-2';
-                        btn.innerHTML = '🎞️ Tạo Video TikTok/Reels';
-                        btn.onclick = () => generateVideo(reportId);
-                        header.insertBefore(btn, header.querySelector('button:last-child'));
+
+                    // Show Video Button if it's a Content Creator report
+                    if (name.toLowerCase().includes('content') && btnGen) {
+                        btnGen.classList.remove('hidden');
                     }
                 }
             } catch (error) {
@@ -627,23 +635,23 @@
         async function generateVideo(reportId) {
             const btn = document.getElementById('btn-gen-video');
             if (!btn) return;
-            
+
             if (!confirm('Bắt đầu tạo Video từ kịch bản này? Quá trình xử lý mất khoảng 30-60 giây.')) return;
-            
+
             const originalHtml = btn.innerHTML;
             btn.disabled = true;
             btn.classList.add('opacity-50', 'cursor-not-allowed');
             btn.innerHTML = '<span class="loader"></span> Đang tạo...';
-            
+
             try {
                 const response = await fetch(`/api/generate-video/${reportId}`, { method: 'POST' });
                 const data = await response.json();
-                
+
                 if (data.status === 'success') {
                     btn.innerHTML = '✅ Video Xong!';
                     btn.classList.remove('bg-purple-600');
                     btn.classList.add('bg-green-600');
-                    
+
                     // Show link in modal
                     const videoDiv = document.createElement('div');
                     videoDiv.className = 'mt-6 p-4 bg-green-50 border border-green-200 rounded-xl flex flex-col items-center gap-3';
@@ -655,7 +663,7 @@
                         <a href="${data.video_url}" target="_blank" class="text-blue-600 underline text-xs">Mở video trong tab mới</a>
                     `;
                     document.getElementById('modal-content').prepend(videoDiv);
-                    
+
                 } else {
                     alert('Lỗi: ' + data.message);
                     btn.disabled = false;
