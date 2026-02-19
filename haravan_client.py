@@ -25,42 +25,51 @@ class HaravanClient:
             response = requests.get(endpoint, headers=self.headers, params=params)
             response.raise_for_status()
             products = response.json().get('products', [])
-            return [self.extract_product_data(p) for p in products]
+            
+            # Expand products into individual variants for sync purposes
+            flat_variants = []
+            for p in products:
+                flat_variants.extend(self.extract_product_variants(p))
+            return flat_variants
         except requests.exceptions.RequestException as e:
             print(f"Error fetching products: {e}")
             return []
 
     def extract_product_data(self, product):
-        """Extract relevant data for video generation from a product object."""
-        
-        # Get Images (limiting to top 10 as per video generator spec)
+        """Deprecated: Use extract_product_variants instead for multi-variant support."""
+        variants = self.extract_product_variants(product)
+        return variants[0] if variants else {}
+
+    def extract_product_variants(self, product):
+        """Extract all variants as separate syncable items."""
+        items = []
+        product_id = product.get('id')
+        product_title = product.get('title')
+        description = product.get('body_html', '')
         images = [img['src'] for img in product.get('images', [])][:10]
+        handle = product.get('handle')
         
-        # Get Price and Variant ID (from first variant)
-        price = 0
-        variant_id = None
-        if product.get('variants'):
-            variant = product['variants'][0]
-            price = variant.get('price', 0)
+        for variant in product.get('variants', []):
             variant_id = variant.get('id')
             sku = variant.get('sku')
-            inventory_qty = variant.get('inventory_quantity', 0)
             
-        # Clean description (simple strip for now, might need HTML parsing later)
-        description = product.get('body_html', '')
-        # Basic HTML tag strip could be added here if needed
-        
-        return {
-            "id": product.get('id'),
-            "title": product.get('title'),
-            "description": description,
-            "price": price,
-            "variant_id": variant_id,
-            "sku": sku,
-            "inventory_quantity": inventory_qty,
-            "handle": product.get('handle'),
-            "images": images
-        }
+            # Fallback SKU logic from GAS reference
+            if not sku:
+                sku = f"HRV-{product_id}-{variant_id}"
+                
+            items.append({
+                "id": product_id,
+                "variant_id": variant_id,
+                "title": f"{product_title} - {variant.get('title')}" if variant.get('title') != "Default Title" else product_title,
+                "product_name": product_title,
+                "description": description,
+                "price": variant.get('price', 0),
+                "sku": sku,
+                "inventory_quantity": variant.get('inventory_quantity', 0),
+                "handle": handle,
+                "images": images
+            })
+        return items
 
     def search_products(self, query, limit=5):
         """Search products by title."""

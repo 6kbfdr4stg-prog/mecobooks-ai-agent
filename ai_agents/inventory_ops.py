@@ -29,27 +29,19 @@ class InventoryOpsAgent:
         """
         self.logger.info("📦 Starting Inventory Sync...")
         
-        # 1. Fetch Haravan Data
-        h_products = self.haravan.get_products(limit=100)
+        # 1. Fetch Haravan Data (Now returns flat list of variants)
+        h_variants = self.haravan.get_products(limit=100)
         h_inventory = {}
-        for p in h_products:
-            # Haravan might have SKU in variants[0]
-            # If not, let's look at the mapping logic
-            sku = p.get('sku')
-            
-            # Fallback: Constructed SKU if real SKU is missing
-            # Pattern observed in WooCommerce: HRV-{product_id}-{variant_id}
-            if not sku:
-                sku = f"HRV-{p['id']}-{p.get('variant_id', '')}"
-                
+        for v in h_variants:
+            sku = v.get('sku')
             if sku:
                 h_inventory[sku] = {
-                    "name": p['title'],
-                    "qty": p.get('inventory_quantity', 0)
+                    "name": v['title'],
+                    "qty": v.get('inventory_quantity', 0)
                 }
         
         # 2. Fetch WooCommerce Data
-        w_inventory_list = self.woo.get_all_inventory(limit=100)
+        w_inventory_list = self.woo.get_all_inventory(limit=150)
         w_inventory = {item['sku']: item for item in w_inventory_list if item.get('sku')}
         
         results = {
@@ -131,13 +123,17 @@ class InventoryOpsAgent:
             
         report += "---\n*Được tạo tự động bởi Inventory Ops Agent.*"
         
-        # Save to File
-        filename = f"inventory_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
-        filepath = os.path.join(self.reports_dir, filename)
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write(report)
+        # Save to File (Optional: Wrapped in try-except for perms)
+        try:
+            filename = f"inventory_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+            filepath = os.path.join(self.reports_dir, filename)
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(report)
+        except Exception as e:
+            self.logger.warning(f"Could not save report file (likely permission error): {e}")
+            filepath = None
             
-        # Save to Database
+        # Save to Database (Critical)
         try:
             conn = get_db_connection()
             c = conn.cursor()
