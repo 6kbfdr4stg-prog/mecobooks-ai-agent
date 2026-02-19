@@ -27,24 +27,31 @@ class InventoryOpsAgent:
         2. Fetch WooCommerce
         3. Compare and Update
         """
-        self.logger.info("📦 Starting Inventory Sync...")
+        print("📦 Starting Inventory Sync Agent...")
         
-        # 1. Fetch Haravan Data (Now returns flat list of variants)
-        h_variants = self.haravan.get_products(limit=100)
+        # 1. Fetch Haravan Data (Fetch more to find matches)
+        h_variants = self.haravan.get_products(limit=250)
         h_inventory = {}
         for v in h_variants:
-            sku = v.get('sku')
-            if sku:
+            raw_sku = v.get('sku')
+            if raw_sku:
+                # Normalize SKU for matching
+                sku = str(raw_sku).strip().upper()
                 h_inventory[sku] = {
                     "name": v['title'],
                     "qty": v.get('inventory_quantity', 0)
                 }
-        self.logger.info(f"✅ Fetched {len(h_inventory)} variants from Haravan.")
+        print(f"✅ Fetched {len(h_inventory)} variants from Haravan.")
         
-        # 2. Fetch WooCommerce Data (Cap at 100 for safety)
+        # 2. Fetch WooCommerce Data (Cap at 100 per API)
         w_inventory_list = self.woo.get_all_inventory(limit=100)
-        w_inventory = {item['sku']: item for item in w_inventory_list if item.get('sku')}
-        self.logger.info(f"✅ Fetched {len(w_inventory)} products from WooCommerce.")
+        w_inventory = {}
+        for item in w_inventory_list:
+            raw_sku = item.get('sku')
+            if raw_sku:
+                sku = str(raw_sku).strip().upper()
+                w_inventory[sku] = item
+        print(f"✅ Fetched {len(w_inventory)} products from WooCommerce.")
         
         results = {
             "synced": [],
@@ -55,20 +62,21 @@ class InventoryOpsAgent:
         }
         
         # 3. Compare and Sync
+        match_count = 0
         for sku, h_data in h_inventory.items():
             h_qty = h_data['qty']
             w_data = w_inventory.get(sku)
             
             if not w_data:
-                # SKU exists in Haravan but not in Woo or no SKU mapping
                 continue
-                
+            
+            match_count += 1
             w_qty = w_data.get('stock_quantity', 0)
             w_sales = w_data.get('total_sales', 0)
             
             # Sync Check
             if h_qty != w_qty:
-                self.logger.info(f"🔄 Mismatch for {sku}: H({h_qty}) != W({w_qty}). Updating...")
+                print(f"🔄 Mismatch for {sku}: H({h_qty}) != W({w_qty}). Updating...")
                 success = self.woo.update_stock_by_sku(sku, h_qty)
                 if success:
                     results["mismatch_fixed"].append({
@@ -89,7 +97,8 @@ class InventoryOpsAgent:
                 
                 if w_sales >= self.HOT_ITEM_SALES_THRESHOLD:
                     results["hot_items"].append(item_info)
-                    
+        
+        print(f"📊 Sync Completed. Matched: {match_count}, Updated: {len(results['mismatch_fixed'])}")
         return results
 
     def generate_report(self, results):
