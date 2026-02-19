@@ -158,6 +158,41 @@ class HaravanClient:
             print(f"Haravan Sales Report Error: {e}")
             return {"total_sales": 0, "total_orders": 0, "total_customers": 0}
 
+    def get_variant_sales(self, days=30):
+        """
+        Calculates the quantity sold for each variant in the last 'days'.
+        Returns a dictionary mapping sku -> quantity_sold.
+        """
+        from datetime import datetime, timedelta
+        start_date = datetime.now() - timedelta(days=days)
+        
+        endpoint = f"{self.shop_url}/admin/orders.json"
+        params = {
+            "created_at_min": start_date.isoformat(),
+            "status": "any",
+            "fields": "line_items"
+        }
+        
+        variant_sales = {}
+        try:
+            # We might need to handle pagination if there are many orders
+            response = requests.get(endpoint, headers=self.headers, params=params)
+            response.raise_for_status()
+            orders = response.json().get('orders', [])
+            
+            for order in orders:
+                for item in order.get('line_items', []):
+                    sku = item.get('sku')
+                    if sku:
+                        sku = str(sku).strip().upper()
+                        qty = int(item.get('quantity', 0))
+                        variant_sales[sku] = variant_sales.get(sku, 0) + qty
+            
+            return variant_sales
+        except Exception as e:
+            print(f"Haravan Variant Sales Error: {e}")
+            return {}
+
     def search_order(self, query):
         """
         Search for an order by name (e.g., #1001) or email.
