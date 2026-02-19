@@ -1,16 +1,17 @@
 # 🛡️ Báo cáo Bảo trì Hệ thống (Integrity Report)
 
-**Thời gian kiểm tra**: `2026-02-17 12:26:37`
+**Thời gian kiểm tra**: `2026-02-19 16:34:38`
 
 ## 🔍 Kết quả Chẩn đoán
 | Kiểm tra | Trạng thái | Chi tiết |
 | :--- | :--- | :--- |
-| Server Health | ✅ PASS | Server is healthy. |
-| Disk Space | ✅ PASS | Disk space OK: 4.3% used. |
-| Memory Usage | ✅ PASS | Memory usage OK: 14.2% used. |
+| Server Health | ❌ FAIL | Could not reach health endpoint: HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='localhost', port=5001): Failed to establish a new connection: [Errno 61] Connection refused")) |
+| Disk Space | ❌ FAIL | Disk space critical: 99.1% used. |
+| Memory Usage | ✅ PASS | Memory check skipped (psutil error: No module named 'psutil') |
 
 ## 🛠️ Hành động Khắc phục
-Hệ thống hoạt động hoàn hảo. Không cần can thiệp.
+- Critical: AI Backend unresponsive. Recommending orchestrator restart.
+- Clean-up suggestion: Run 'docker system prune -f' on host.
 
 ---
 *Được tạo tự động bởi Integrity Manager Agent.*

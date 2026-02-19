@@ -545,6 +545,16 @@ async def run_agent_sync(agent_name: str, username: str = Depends(get_current_us
                   (f"{agent_name}_{datetime.now().strftime('%Y%m%d%H%M')}.md", "markdown", content, datetime.utcnow()))
         conn.commit()
         conn.close()
+        
+        # Send Telegram Notification
+        try:
+            from ai_agents.telegram_client import send_telegram_message
+            snippet = content[:200] + "..." if len(content) > 200 else content
+            message = f"✅ **Report Generated: {agent_name}**\n\n{snippet}\n\n[View Dashboard](https://mecobooks-ai-agent.onrender.com/verify)"
+            send_telegram_message(message)
+        except Exception as e:
+            print(f"Failed to send Telegram notification: {e}")
+
 
     return {"status": "success", "agent": agent_name, "output": content}
 
