@@ -1,11 +1,14 @@
 import os
 import random
 from moviepy.editor import ImageClip, AudioFileClip, CompositeVideoClip
-from gtts import gTTS
 from PIL import Image, ImageFilter
 import requests
 from io import BytesIO
 import numpy as np
+import json
+import base64
+import hashlib
+from config import GOOGLE_TTS_API_KEY
 
 # Configuration
 VIDEO_W, VIDEO_H = 1080, 1920
@@ -23,7 +26,7 @@ class VideoProcessor:
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             }
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=headers, timeout=20)
             if response.status_code == 200:
                 print(f"✅ Image downloaded successfully: {url}")
                 return Image.open(BytesIO(response.content)).convert("RGB")
@@ -54,15 +57,45 @@ class VideoProcessor:
         bg.save(temp_path)
         return temp_path
 
-    def _generate_tts(self, text, lang='vi'):
-        """Generates TTS audio using gTTS (Free)"""
+    def _generate_tts(self, text, lang='vi-VN'):
+        """Generates TTS audio using Google Cloud TTS REST API"""
+        if not GOOGLE_TTS_API_KEY:
+            print("⚠️ Missing GOOGLE_TTS_API_KEY. Video will have no audio.")
+            return None
+
+        url = f"https://texttospeech.googleapis.com/v1/text:synthesize?key={GOOGLE_TTS_API_KEY}"
+        
+        # Voice Config (Using a high-quality neural voice as default)
+        voice_name = "vi-VN-Neural2-A" 
+        
+        payload = {
+            "input": {"text": text},
+            "voice": {"languageCode": lang, "name": voice_name},
+            "audioConfig": {
+                "audioEncoding": "MP3",
+                "speakingRate": 1.0,
+                "pitch": 0.0
+            }
+        }
+
         try:
-            tts = gTTS(text=text, lang=lang)
+            response = requests.post(url, json=payload, timeout=20)
+            response.raise_for_status()
+            
+            audio_content = response.json().get("audioContent")
+            if not audio_content:
+                print("❌ No audio content returned from Google TTS")
+                return None
+                
             temp_audio = f"temp_audio_{random.randint(1000,9999)}.mp3"
-            tts.save(temp_audio)
+            with open(temp_audio, "wb") as f:
+                f.write(base64.b64decode(audio_content))
+                
+            print(f"✅ TTS generated successfully using Google API")
             return temp_audio
+            
         except Exception as e:
-            print(f"TTS Error: {e}")
+            print(f"TTS API Error: {e}")
             return None
 
     def _ken_burns_zoom(self, clip, zoom_ratio=1.1):

@@ -19,7 +19,7 @@ class WooCommerceClient:
                 consumer_key=self.key,
                 consumer_secret=self.secret,
                 version="wc/v3",
-                timeout=10
+                timeout=30
             )
         else:
             self.wcapi = None
