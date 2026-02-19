@@ -8,12 +8,17 @@
  */
 
 // ==================== API KEYS ====================
-const GEMINI_API_KEY = "DÁN_GEMINI_API_KEY_VÀO_ĐÂY";
-const TELEGRAM_TOKEN = "DÁN_TELEGRAM_BOT_TOKEN_VÀO_ĐÂY";
+// ==================== API KEYS ====================
+const GEMINI_API_KEY = "AIzaSyCysQS5gRxD9kFqIDerxYvXNjSHNe3sL8w"; 
+const TELEGRAM_TOKEN = "8292481641:AAHfTK91TWpvjVAb7j-YtK1LP-AVDkuOcuo";
+
+// ==================== GEMINI MODELS ====================
+const GEMINI_MODEL_FAST = "gemini-2.0-flash";
+const GEMINI_MODEL_SMART = "gemini-3.0-pro"; // Upgraded to 3.0 Pro per request
 
 // Chat ID của chủ sở hữu bot (để gửi nhắc nhở tự động)
 // Gửi /start cho bot, sau đó chạy hàm getUpdates() để lấy chat_id
-const OWNER_CHAT_ID = "DÁN_CHAT_ID_VÀO_ĐÂY";
+const OWNER_CHAT_ID = "8425705625"; // Đã cập nhật ID chính chủ
 
 // ==================== GOOGLE SHEETS ====================
 // Tên các Tab trong Google Sheets

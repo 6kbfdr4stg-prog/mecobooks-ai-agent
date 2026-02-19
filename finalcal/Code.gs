@@ -177,6 +177,10 @@ function handleCommand(chatId, command) {
       sendAdvice(chatId);
       break;
       
+    case "/debug":
+      sendDebugReport(chatId);
+      break;
+      
     default:
       sendMessage(chatId, "❓ Lệnh không hợp lệ. Gõ /help để xem danh sách lệnh.");
   }
@@ -261,7 +265,7 @@ function sendDailyReport(chatId) {
 function sendMonthlyReport(chatId) {
   var monthly = getMonthlySummary();
   var now = new Date();
-  var monthName = "Tháng " + (now.getMonth() + 1) + "/" + now.getFullYear();
+  var monthName = "Tháng " + Utilities.formatDate(now, "Asia/Ho_Chi_Minh", "M/yyyy");
   
   var monthlyProfit = monthly.totalIncome * BUSINESS.profitMargin;
   var targetMonthlyRevenue = BUSINESS.targetDailyRevenue * 30;
@@ -316,7 +320,7 @@ function sendTargetReport(chatId) {
   var dailyProfit = daily.totalIncome * BUSINESS.profitMargin;
   var firstOfMonth = getFirstOfMonthTarget();
   var now = new Date();
-  var today = now.getDate();
+  var today = parseInt(Utilities.formatDate(now, "Asia/Ho_Chi_Minh", "d"));
   
   // Tính tiền mặt cần có lũy kế đến hôm nay
   var cumulative = calculateCumulativeCashNeeded(today);

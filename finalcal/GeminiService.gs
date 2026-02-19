@@ -10,8 +10,9 @@
  * @param {string} systemInstruction - System prompt (tùy chọn)
  * @returns {string} - Phản hồi từ Gemini
  */
-function callGemini(prompt, systemInstruction) {
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY;
+function callGemini(prompt, systemInstruction, modelName) {
+  var model = modelName || GEMINI_MODEL_FAST;
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + GEMINI_API_KEY;
   
   var contents = [{"parts": [{"text": prompt}]}];
   
@@ -103,7 +104,8 @@ function getFinancialAdvice(context) {
   var prompt = "Đây là tình hình tài chính hiện tại:\n" + JSON.stringify(context, null, 2) + 
     "\n\nHãy đưa ra nhận xét ngắn gọn và 1-2 lời khuyên hành động cụ thể.";
   
-  var response = callGemini(prompt, systemPrompt);
+  // Use Pro model for smarter advice
+  var response = callGemini(prompt, systemPrompt, GEMINI_MODEL_SMART);
   return response || "Không thể lấy lời khuyên lúc này. Hãy thử lại sau.";
 }
 
@@ -125,6 +127,7 @@ function answerQuestion(question, financialContext) {
     '- Mục tiêu tích lũy: 587k/ngày\n\n' +
     'Dữ liệu thực tế hôm nay:\n' + JSON.stringify(financialContext, null, 2);
 
-  var response = callGemini(question, systemPrompt);
+  // Use Pro model for smarter answers
+  var response = callGemini(question, systemPrompt, GEMINI_MODEL_SMART);
   return response || "Xin lỗi, tôi không thể trả lời câu hỏi này lúc này.";
 }

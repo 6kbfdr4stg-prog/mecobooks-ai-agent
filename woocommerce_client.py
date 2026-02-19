@@ -385,3 +385,34 @@ class WooCommerceClient:
         except Exception as e:
             print(f"WooCommerce Get Order Error: {e}")
             return None
+    def get_sales_report(self, period="month"):
+        """
+        Fetch sales reports from WooCommerce.
+        period: 'week', 'month', 'last_month', 'year'.
+        """
+        if not self.wcapi: return {}
+        
+        try:
+            params = {"period": period}
+            reports = self.wcapi.get("reports/sales", params=params).json()
+            if isinstance(reports, list) and len(reports) > 0:
+                return reports[0] # Return the first report object
+            return {}
+        except Exception as e:
+            print(f"WooCommerce Sales Report Error: {e}")
+            return {}
+
+    def get_system_status(self):
+        """
+        Fetch system status (for inventory counts).
+        """
+        if not self.wcapi: return {}
+        try:
+            # We can't get full status easily via API v3 without permissions, 
+            # so we'll do a quick product count via /products header or count endpoint
+            # Actually, reports/products/count is good
+            count = self.wcapi.get("reports/products/count").json()
+            return count if isinstance(count, list) else []
+        except Exception as e:
+            print(f"WooCommerce Status Error: {e}")
+            return []

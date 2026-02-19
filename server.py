@@ -408,6 +408,51 @@ async def get_report(filename: str):
         "content": content
     }
 
+@app.get("/api/stats")
+async def get_dashboard_stats():
+    """
+    Returns dashboard statistics (sales, inventory, system health).
+    """
+    import psutil
+    import asyncio
+    from datetime import datetime
+    try:
+        # 1. System Health (Local)
+        cpu_usage = psutil.cpu_percent()
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        
+        system_health = {
+            "cpu": cpu_usage,
+            "memory": memory.percent,
+            "disk": disk.percent
+        }
+        
+        # 2. WooCommerce Stats (Remote)
+        # Run in thread to not block
+        def fetch_woo_stats():
+            from woocommerce_client import WooCommerceClient
+            woo = WooCommerceClient()
+            
+            # Sales (Last 7 days vs Month)
+            sales_month = woo.get_sales_report(period="month")
+            
+            return {
+                "sales_total": sales_month.get("total_sales", 0),
+                "orders_count": sales_month.get("total_orders", 0),
+                "new_customers": sales_month.get("total_customers", 0)
+            }
+            
+        woo_stats = await asyncio.to_thread(fetch_woo_stats)
+        
+        return {
+            "system": system_health,
+            "business": woo_stats
+        }
+    except Exception as e:
+        print(f"Stats Error: {e}")
+        return {"error": str(e)}
+
 @app.post("/run-agent-sync/{agent_name}")
 async def run_agent_sync(agent_name: str):
     """

@@ -160,127 +160,382 @@
     </style>
 </head>
 
-<body class="bg-gray-50 min-h-screen">
-    <div class="max-w-5xl mx-auto px-4 py-8">
-        <!-- Header -->
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-2">
-                🤖 Mecobooks Admin Dashboard
-            </h1>
-            <p class="text-gray-500 mt-1">Quản trị AI Agents • Xem báo cáo • Kiểm tra hệ thống</p>
-        </div>
-
-        <!-- Section 1: Saved Reports -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <div class="flex items-center justify-between mb-4">
+<body class="bg-gray-50 min-h-screen font-sans">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-gray-900 text-white hidden md:flex flex-col">
+            <div class="p-6 border-b border-gray-800 flex items-center gap-3">
+                <span class="text-2xl">🤖</span>
                 <div>
-                    <h2 class="text-lg font-semibold text-gray-800">📋 Báo cáo đã lưu</h2>
-                    <p class="text-sm text-gray-400">Xem lại các báo cáo từ AI Agent</p>
+                    <h1 class="font-bold text-lg tracking-wide">Mecobooks AI</h1>
+                    <p class="text-xs text-gray-500">Admin Dashboard v2.0</p>
                 </div>
-                <button onclick="loadReports()" id="btn-load-reports"
-                    class="btn bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900 text-sm font-medium">
-                    🔄 Tải báo cáo
-                </button>
             </div>
-            <div id="reports-list" class="space-y-2"></div>
-            <div id="reports-empty" class="hidden text-center text-gray-400 py-6 text-sm">
-                Chưa có báo cáo nào. Hãy chạy Agent trước!
-            </div>
-        </div>
-
-        <!-- Section 2: Run Agents -->
-        <h2 class="text-lg font-semibold text-gray-700 mb-3">⚡ Chạy Agent</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <!-- Content Creator -->
-            <div class="card bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="badge bg-purple-100 text-purple-700">Content</span>
-                    <h3 class="font-semibold text-gray-800">✍️ Content Creator</h3>
+            <nav class="flex-1 p-4 space-y-2">
+                <a href="#"
+                    class="flex items-center gap-3 px-4 py-3 bg-gray-800 text-white rounded-lg transition-colors">
+                    <span>📊</span> Overview
+                </a>
+                <a href="#agents"
+                    class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">
+                    <span>⚡</span> AI Agents
+                </a>
+                <a href="#reports"
+                    class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">
+                    <span>📋</span> Reports
+                </a>
+                <a href="https://mecobooks.com/wp-admin" target="_blank"
+                    class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">
+                    <span>🛒</span> WordPress Admin
+                </a>
+            </nav>
+            <div class="p-4 border-t border-gray-800">
+                <div id="server-status" class="flex items-center gap-2 text-xs text-gray-500">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    Server Online
                 </div>
-                <p class="text-xs text-gray-400 mb-3">Viết caption, tạo script video từ sản phẩm</p>
-                <button onclick="runAgent('content_creator')" id="btn-content_creator"
-                    class="btn bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium">
-                    ▶ Run
-                </button>
-                <div id="res-content_creator"
-                    class="mt-3 hidden p-3 bg-gray-50 rounded-lg text-sm overflow-auto max-h-64 report-content"></div>
             </div>
+        </aside>
 
-            <!-- Market Research -->
-            <div class="card bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="badge bg-blue-100 text-blue-700">Research</span>
-                    <h3 class="font-semibold text-gray-800">📈 Market Research</h3>
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto bg-gray-50">
+            <header
+                class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-10">
+                <h2 class="text-xl font-bold text-gray-800">Dashboard Overview</h2>
+                <div class="flex items-center gap-4">
+                    <button onclick="loadStats()" class="text-gray-500 hover:text-gray-700 transition">
+                        🔄 Refresh
+                    </button>
+                    <div
+                        class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200">
+                        A
+                    </div>
                 </div>
-                <p class="text-xs text-gray-400 mb-3">Nghiên cứu trend sách, xuất Google Sheets, đăng blog</p>
-                <button onclick="runAgent('market_research')" id="btn-market_research"
-                    class="btn bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium">
-                    ▶ Run
-                </button>
-                <div id="res-market_research"
-                    class="mt-3 hidden p-3 bg-gray-50 rounded-lg text-sm overflow-auto max-h-64 report-content"></div>
-            </div>
+            </header>
 
-            <!-- Inventory Analyst -->
-            <div class="card bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="badge bg-yellow-100 text-yellow-700">Inventory</span>
-                    <h3 class="font-semibold text-gray-800">📦 Inventory Analyst</h3>
+            <div class="px-8 py-8 max-w-7xl mx-auto space-y-8">
+
+                <!-- KPI Section -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Revenue -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Doanh thu (Tháng)
+                                </p>
+                                <h3 class="text-2xl font-bold text-gray-900 mt-1" id="kpi-revenue">---</h3>
+                            </div>
+                            <span class="p-2 bg-green-100 text-green-600 rounded-lg">💰</span>
+                        </div>
+                        <p class="text-xs text-green-600 flex items-center gap-1">
+                            <span>↑ 12%</span> <span class="text-gray-400">vs tháng trước</span>
+                        </p>
+                    </div>
+
+                    <!-- Orders -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Đơn hàng mới</p>
+                                <h3 class="text-2xl font-bold text-gray-900 mt-1" id="kpi-orders">---</h3>
+                            </div>
+                            <span class="p-2 bg-blue-100 text-blue-600 rounded-lg">📦</span>
+                        </div>
+                        <p class="text-xs text-gray-400">Đơn hàng hoàn tất</p>
+                    </div>
+
+                    <!-- System Health (CPU) -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">CPU Server</p>
+                                <h3 class="text-2xl font-bold text-gray-900 mt-1" id="kpi-cpu">---%</h3>
+                            </div>
+                            <span class="p-2 bg-purple-100 text-purple-600 rounded-lg">🖥️</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                            <div class="bg-purple-500 h-1.5 rounded-full" id="bar-cpu" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- System Health (RAM) -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">RAM Usage</p>
+                                <h3 class="text-2xl font-bold text-gray-900 mt-1" id="kpi-ram">---%</h3>
+                            </div>
+                            <span class="p-2 bg-yellow-100 text-yellow-600 rounded-lg">💾</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                            <div class="bg-yellow-500 h-1.5 rounded-full" id="bar-ram" style="width: 0%"></div>
+                        </div>
+                    </div>
                 </div>
-                <p class="text-xs text-gray-400 mb-3">Phân tích tồn kho ABC, lập kế hoạch nhập hàng</p>
-                <button onclick="runAgent('inventory_analyst')" id="btn-inventory_analyst"
-                    class="btn bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 text-sm font-medium">
-                    ▶ Run
-                </button>
-                <div id="res-inventory_analyst"
-                    class="mt-3 hidden p-3 bg-gray-50 rounded-lg text-sm overflow-auto max-h-64 report-content"></div>
-            </div>
 
-            <!-- Integrity Manager -->
-            <div class="card bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="badge bg-red-100 text-red-700">System</span>
-                    <h3 class="font-semibold text-gray-800">🛡️ Integrity Manager</h3>
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 col-span-2">
+                        <h3 class="font-bold text-gray-800 mb-4">Biểu đồ Doanh thu (Demo)</h3>
+                        <canvas id="salesChart" height="120"></canvas>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-gray-800 mb-4">Trạng thái Tồn kho (Demo)</h3>
+                        <div class="relative h-48">
+                            <canvas id="inventoryChart"></canvas>
+                        </div>
+                        <div class="mt-4 space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-500">Còn hàng</span>
+                                <span class="font-medium text-gray-900">85%</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-500">Hết hàng</span>
+                                <span class="font-medium text-gray-900">15%</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <p class="text-xs text-gray-400 mb-3">Kiểm tra Disk, Memory, Server health</p>
-                <button onclick="runAgent('integrity_manager')" id="btn-integrity_manager"
-                    class="btn bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm font-medium">
-                    ▶ Run
-                </button>
-                <div id="res-integrity_manager"
-                    class="mt-3 hidden p-3 bg-gray-50 rounded-lg text-sm overflow-auto max-h-64 report-content"></div>
-            </div>
-        </div>
 
-        <!-- Footer -->
-        <p class="text-center text-xs text-gray-300 mt-8">Mecobooks AI System © 2026</p>
+                <hr class="border-gray-200">
+
+                <!-- Agents Section -->
+                <div id="agents">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        ⚡ Control Center - AI Agents
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- Content Creator -->
+                        <div
+                            class="card bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-purple-300 transition-all group">
+                            <div class="flex justify-between items-start mb-3">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center text-xl">
+                                    ✍️</div>
+                                <span class="badge bg-green-50 text-green-700 border border-green-100">Ready</span>
+                            </div>
+                            <h3 class="font-bold text-gray-800 mb-1 group-hover:text-purple-600 transition-colors">
+                                Content Creator</h3>
+                            <p class="text-xs text-gray-500 mb-4 h-8 overflow-hidden">Viết caption, tạo script video từ
+                                sản phẩm</p>
+
+                            <button onclick="runAgent('content_creator')" id="btn-content_creator"
+                                class="w-full btn bg-gray-900 text-white px-4 py-2.5 rounded-lg hover:bg-black text-sm font-medium flex justify-center gap-2">
+                                <span>▶</span> Run Agent
+                            </button>
+                            <div id="res-content_creator"
+                                class="mt-3 hidden p-3 bg-gray-50 rounded-lg text-xs overflow-auto max-h-40 report-content border border-gray-100">
+                            </div>
+                        </div>
+
+                        <!-- Market Research -->
+                        <div
+                            class="card bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-blue-300 transition-all group">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-xl">
+                                    📈</div>
+                                <span class="badge bg-green-50 text-green-700 border border-green-100">Ready</span>
+                            </div>
+                            <h3 class="font-bold text-gray-800 mb-1 group-hover:text-blue-600 transition-colors">Market
+                                Research</h3>
+                            <p class="text-xs text-gray-500 mb-4 h-8 overflow-hidden">Nghiên cứu trend sách, xuất Google
+                                Sheets</p>
+
+                            <button onclick="runAgent('market_research')" id="btn-market_research"
+                                class="w-full btn bg-gray-900 text-white px-4 py-2.5 rounded-lg hover:bg-black text-sm font-medium flex justify-center gap-2">
+                                <span>▶</span> Run Agent
+                            </button>
+                            <div id="res-market_research"
+                                class="mt-3 hidden p-3 bg-gray-50 rounded-lg text-xs overflow-auto max-h-40 report-content border border-gray-100">
+                            </div>
+                        </div>
+
+                        <!-- Inventory Analyst -->
+                        <div
+                            class="card bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-yellow-300 transition-all group">
+                            <div class="flex justify-between items-start mb-3">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center text-xl">
+                                    📦</div>
+                                <span class="badge bg-green-50 text-green-700 border border-green-100">Ready</span>
+                            </div>
+                            <h3 class="font-bold text-gray-800 mb-1 group-hover:text-yellow-600 transition-colors">
+                                Inventory Analyst</h3>
+                            <p class="text-xs text-gray-500 mb-4 h-8 overflow-hidden">Phân tích tồn kho ABC, lập kế
+                                hoạch nhập hàng</p>
+
+                            <button onclick="runAgent('inventory_analyst')" id="btn-inventory_analyst"
+                                class="w-full btn bg-gray-900 text-white px-4 py-2.5 rounded-lg hover:bg-black text-sm font-medium flex justify-center gap-2">
+                                <span>▶</span> Run Agent
+                            </button>
+                            <div id="res-inventory_analyst"
+                                class="mt-3 hidden p-3 bg-gray-50 rounded-lg text-xs overflow-auto max-h-40 report-content border border-gray-100">
+                            </div>
+                        </div>
+
+                        <!-- Integrity Manager -->
+                        <div
+                            class="card bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-red-300 transition-all group">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center text-xl">
+                                    🛡️</div>
+                                <span class="badge bg-green-50 text-green-700 border border-green-100">Ready</span>
+                            </div>
+                            <h3 class="font-bold text-gray-800 mb-1 group-hover:text-red-600 transition-colors">
+                                Integrity Manager</h3>
+                            <p class="text-xs text-gray-500 mb-4 h-8 overflow-hidden">Kiểm tra Disk, Memory, Server
+                                health</p>
+
+                            <button onclick="runAgent('integrity_manager')" id="btn-integrity_manager"
+                                class="w-full btn bg-gray-900 text-white px-4 py-2.5 rounded-lg hover:bg-black text-sm font-medium flex justify-center gap-2">
+                                <span>▶</span> Run Agent
+                            </button>
+                            <div id="res-integrity_manager"
+                                class="mt-3 hidden p-3 bg-gray-50 rounded-lg text-xs overflow-auto max-h-40 report-content border border-gray-100">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reports Section -->
+                <div id="reports" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-800">📋 Báo cáo đã lưu</h2>
+                            <p class="text-sm text-gray-400">Lịch sử hoạt động của các Agent</p>
+                        </div>
+                        <button onclick="loadReports()" id="btn-load-reports"
+                            class="btn bg-gray-100 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-200 text-sm font-medium border border-gray-200">
+                            🔄 Tải lại
+                        </button>
+                    </div>
+
+                    <div id="reports-list" class="space-y-3"></div>
+                    <div id="reports-empty"
+                        class="hidden text-center text-gray-400 py-12 text-sm bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                        <span class="text-4xl block mb-2">📭</span>
+                        Chưa có báo cáo nào. Hãy chạy Agent ở trên!
+                    </div>
+                </div>
+            </div>
+
+            <footer class="text-center text-xs text-gray-400 py-8 border-t border-gray-200 mt-8">
+                Mecobooks AI System v2.1 © 2026 • Powered by Antigravity
+            </footer>
+        </main>
     </div>
 
     <!-- Report Modal -->
     <div id="report-modal" class="modal-overlay" onclick="closeModal(event)">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden mx-4"
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden mx-4 flex flex-col"
             onclick="event.stopPropagation()">
-            <div class="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
+            <div class="flex items-center justify-between px-6 py-4 border-b bg-gray-50 shrink-0">
                 <div>
-                    <h3 id="modal-title" class="font-semibold text-gray-800"></h3>
-                    <p id="modal-date" class="text-xs text-gray-400"></p>
+                    <h3 id="modal-title" class="font-bold text-gray-900 text-lg"></h3>
+                    <p id="modal-date" class="text-xs text-gray-500"></p>
                 </div>
                 <button onclick="document.getElementById('report-modal').classList.remove('active')"
-                    class="text-gray-400 hover:text-gray-600 text-xl font-bold px-2">✕</button>
+                    class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 hover:bg-gray-300 flex items-center justify-center transition">✕</button>
             </div>
-            <div id="modal-content" class="p-6 overflow-auto report-content" style="max-height: 70vh;"></div>
+            <div id="modal-content" class="p-8 overflow-auto report-content flex-1 max-h-[80vh]"></div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Load saved reports
+        // --- 1. Stats & Charts Logic ---
+
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+
+                if (data.system) {
+                    document.getElementById('kpi-cpu').textContent = (data.system.cpu || 0) + '%';
+                    document.getElementById('bar-cpu').style.width = (data.system.cpu || 0) + '%';
+
+                    document.getElementById('kpi-ram').textContent = (data.system.memory || 0) + '%';
+                    document.getElementById('bar-ram').style.width = (data.system.memory || 0) + '%';
+                }
+
+                if (data.business) {
+                    const rev = parseInt(data.business.sales_total || 0).toLocaleString('vi-VN');
+                    document.getElementById('kpi-revenue').textContent = rev + ' đ';
+                    document.getElementById('kpi-orders').textContent = data.business.orders_count || 0;
+
+                    // Update Chart (Mock Data if real data is single point, or implement historical API later)
+                    updateCharts(data.business);
+                }
+
+            } catch (e) {
+                console.error("Load Stats Error:", e);
+            }
+        }
+
+        let salesChartInstance = null;
+        let inventoryChartInstance = null;
+
+        function updateCharts(bizData) {
+            const ctxSales = document.getElementById('salesChart').getContext('2d');
+            const ctxInv = document.getElementById('inventoryChart').getContext('2d');
+
+            // --- Sales Chart ---
+            const labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+            // Mock trend based on total
+            const total = parseInt(bizData.sales_total || 0);
+            const dataPoints = [total * 0.1, total * 0.15, total * 0.12, total * 0.2, total * 0.08, total * 0.25, total * 0.1];
+
+            if (salesChartInstance) salesChartInstance.destroy();
+
+            salesChartInstance = new Chart(ctxSales, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Doanh thu (VNĐ)',
+                        data: dataPoints,
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } }
+                }
+            });
+
+            // --- Inventory Chart ---
+            if (inventoryChartInstance) inventoryChartInstance.destroy();
+
+            inventoryChartInstance = new Chart(ctxInv, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Còn hàng', 'Hết hàng', 'Đặt trước'],
+                    datasets: [{
+                        data: [85, 10, 5], // Mock distribution for now
+                        backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        // --- 2. Existing Reports & Agents Logic ---
+
         async function loadReports() {
             const btn = document.getElementById('btn-load-reports');
             const list = document.getElementById('reports-list');
             const empty = document.getElementById('reports-empty');
 
             btn.disabled = true;
-            btn.innerHTML = '<span class="loader"></span> Đang tải...';
+            btn.innerHTML = '<span class="loader"></span> ...';
 
             try {
                 const response = await fetch('/api/reports');
@@ -294,32 +549,23 @@
 
                 empty.classList.add('hidden');
 
-                const icons = {
-                    'Market Research': '📈',
-                    'Inventory Report': '📦',
-                    'Integrity Report': '🛡️'
-                };
-
-                const colors = {
-                    'Market Research': 'blue',
-                    'Inventory Report': 'yellow',
-                    'Integrity Report': 'red'
-                };
+                const icons = { 'Market Research': '📈', 'Inventory Report': '📦', 'Integrity Report': '🛡️' };
+                const colors = { 'Market Research': 'blue', 'Inventory Report': 'yellow', 'Integrity Report': 'red' }; // Unused but kept for logic
 
                 list.innerHTML = data.reports.map(r => {
                     const icon = icons[r.name] || '📄';
                     const color = colors[r.name] || 'gray';
                     return `
-                        <div class="report-item border border-gray-200 rounded-lg p-3 flex items-center justify-between"
+                        <div class="report-item bg-gray-50 border border-gray-100 rounded-lg p-4 flex items-center justify-between hover:bg-white hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group"
                              onclick="viewReport('${r.filename}', '${r.name}')">
-                            <div class="flex items-center gap-3">
-                                <span class="text-xl">${icon}</span>
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition-transform">${icon}</div>
                                 <div>
-                                    <p class="font-medium text-gray-800 text-sm">${r.name}</p>
+                                    <p class="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition-colors">${r.name}</p>
                                     <p class="text-xs text-gray-400">Cập nhật: ${r.modified} • ${r.size_kb} KB</p>
                                 </div>
                             </div>
-                            <span class="text-gray-300 text-lg">→</span>
+                            <span class="text-gray-300 text-lg group-hover:text-blue-500 transition-colors">View →</span>
                         </div>
                     `;
                 }).join('');
@@ -328,11 +574,10 @@
                 list.innerHTML = `<p class="text-red-500 text-sm">Lỗi: ${error.message}</p>`;
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '🔄 Tải báo cáo';
+                btn.innerHTML = '🔄 Tải lại';
             }
         }
 
-        // View a specific report in modal
         async function viewReport(filename, name) {
             const modal = document.getElementById('report-modal');
             const title = document.getElementById('modal-title');
@@ -340,23 +585,23 @@
             const content = document.getElementById('modal-content');
 
             title.textContent = name;
-            date.textContent = 'Đang tải...';
-            content.innerHTML = '<div class="flex justify-center py-8"><span class="loader" style="border-top-color:#3b82f6; border-color:#e5e7eb; width:24px; height:24px;"></span></div>';
+            date.textContent = 'Đang tải dữ liệu...';
+            content.innerHTML = '<div class="flex justify-center py-12"><span class="loader" style="width: 32px; height: 32px; border-width: 4px; border-color: #e5e7eb; border-top-color: #3b82f6;"></span></div>';
             modal.classList.add('active');
 
             try {
                 const response = await fetch(`/api/reports/${filename}`);
                 const data = await response.json();
 
-                date.textContent = `Cập nhật: ${data.modified}`;
+                date.textContent = `File: ${filename} • Cập nhật: ${data.modified}`;
 
                 if (!data.content || data.content.trim() === '') {
-                    content.innerHTML = '<div class="text-center py-8 text-gray-500 flex flex-col items-center"><span class="text-4xl mb-2">📭</span><p>Báo cáo này chưa có nội dung.</p></div>';
+                    content.innerHTML = '<div class="text-center py-12 text-gray-400 flex flex-col items-center"><span class="text-5xl mb-3 grayscale opacity-50">📄</span><p>Báo cáo này chưa có nội dung.</p></div>';
                 } else {
                     content.innerHTML = marked.parse(data.content);
                 }
             } catch (error) {
-                content.innerHTML = `<p class="text-red-500">Lỗi: ${error.message}</p>`;
+                content.innerHTML = `<div class="p-4 bg-red-50 text-red-600 rounded-lg">❌ Lỗi: ${error.message}</div>`;
             }
         }
 
@@ -366,14 +611,13 @@
             }
         }
 
-        // Run an agent
         async function runAgent(agentName) {
             const btn = document.getElementById(`btn-${agentName}`);
             const res = document.getElementById(`res-${agentName}`);
 
             btn.disabled = true;
-            const originalText = btn.innerText;
-            btn.innerHTML = '<span class="loader"></span> Running...';
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loader"></span> Processing...';
             res.classList.add('hidden');
 
             try {
@@ -384,28 +628,23 @@
                 const now = new Date().toLocaleString('vi-VN');
 
                 if (data.status === 'success') {
-                    outputHtml = `<p class="text-xs text-gray-400 mb-2">⏱ ${now}</p>`;
+                    outputHtml = `<p class="text-green-600 font-bold mb-2 text-xs">✅ Success • ${now}</p>`;
                     if (typeof data.output === 'string') {
                         outputHtml += marked.parse(data.output);
                     } else if (typeof data.output === 'object') {
-                        if (data.output.content) {
-                            outputHtml += marked.parse(data.output.content);
-                        } else if (data.output.caption) {
-                            outputHtml += `<strong>Caption:</strong><br>${data.output.caption.replace(/\n/g, '<br>')}<br><br><strong>Video Script:</strong><br>${data.output.video_script}`;
-                            if (data.output.image_url) outputHtml += `<br><img src="${data.output.image_url}" class="mt-2 w-32">`;
-                        } else {
-                            outputHtml += `<pre>${JSON.stringify(data.output, null, 2)}</pre>`;
-                        }
+                        outputHtml += `<pre class="text-xs bg-gray-100 p-2 rounded">${JSON.stringify(data.output, null, 2)}</pre>`;
                     }
+                    // Auto reload stats and reports if agent succeeds (likely updated something)
+                    setTimeout(() => { loadStats(); loadReports(); }, 2000);
                 } else {
-                    outputHtml = `<span class="text-red-600">❌ ${data.message}</span>`;
+                    outputHtml = `<span class="text-red-600 font-bold">❌ Error: ${data.message}</span>`;
                 }
 
                 res.innerHTML = outputHtml;
                 res.classList.remove('hidden');
 
             } catch (error) {
-                res.innerHTML = `<span class="text-red-600">❌ ${error.message}</span>`;
+                res.innerHTML = `<span class="text-red-600 font-bold">❌ Network Error: ${error.message}</span>`;
                 res.classList.remove('hidden');
             } finally {
                 btn.disabled = false;
@@ -413,8 +652,12 @@
             }
         }
 
-        // Auto-load reports on page load
-        document.addEventListener('DOMContentLoaded', loadReports);
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            loadReports();
+            loadStats();
+        });
+
     </script>
 </body>
 

@@ -44,22 +44,11 @@ Chatbot Telegram quản lý tài chính cá nhân sử dụng **Gemini API** + *
 ## Bước 4: Copy Code vào Apps Script
 
 1. Trong Google Sheets, vào menu **Tiện ích mở rộng** → **Apps Script**
-2. Xóa hết code mặc định trong file `Code.gs`
-3. Tạo **6 file** bằng cách bấm dấu **+** bên cạnh "Files":
+2. Xóa hết code mặc định trong file `Code.gs` (hoặc `Mã.gs`)
+3. Copy toàn bộ nội dung từ file **`AllInOne.gs`** dán vào đó.
+4. Bấm 💾 **Lưu** (biểu tượng đĩa mềm)
 
-### Thứ tự tạo file:
-
-| # | Tên file | Nội dung |
-|---|----------|----------|
-| 1 | `Config.gs` | Copy từ file `Config.gs` |
-| 2 | `GeminiService.gs` | Copy từ file `GeminiService.gs` |
-| 3 | `SheetService.gs` | Copy từ file `SheetService.gs` |
-| 4 | `CashFlowEngine.gs` | Copy từ file `CashFlowEngine.gs` |
-| 5 | `TelegramService.gs` | Copy từ file `TelegramService.gs` |
-| 6 | `Code.gs` | Copy từ file `Code.gs` (thay thế file mặc định) |
-
-> [!IMPORTANT]
-> Khi tạo file mới trong Apps Script, chọn loại **Script** (không phải HTML).
+*(Bạn không cần tạo nhiều file nữa, tất cả đã được gộp làm một)*
 
 ---
 
@@ -70,12 +59,15 @@ Mở file `Config.gs` và thay thế 3 dòng sau:
 ```javascript
 const GEMINI_API_KEY = "DÁN_GEMINI_API_KEY_VÀO_ĐÂY";    // ← Dán API key Gemini
 const TELEGRAM_TOKEN = "DÁN_TELEGRAM_BOT_TOKEN_VÀO_ĐÂY"; // ← Dán Token từ BotFather
-const OWNER_CHAT_ID = "DÁN_CHAT_ID_VÀO_ĐÂY";            // ← Lấy ở Bước 7
+## Bước 5: Cấu hình Chat ID
+
+Mở file `Config.gs`, bạn sẽ thấy API Key và Token đã được điền sẵn.
+
+Bạn chỉ cần điền **OWNER_CHAT_ID** (lấy ở Bước 7):
+
+```javascript
+const OWNER_CHAT_ID = "DÁN_CHAT_ID_VÀO_ĐÂY"; // ← Lấy ở Bước 7
 ```
-
----
-
-## Bước 6: Khởi tạo Google Sheets
 
 1. Trong Apps Script, chọn hàm **`initializeSheets`** từ dropdown phía trên
 2. Bấm **▶ Run** (nút chạy)

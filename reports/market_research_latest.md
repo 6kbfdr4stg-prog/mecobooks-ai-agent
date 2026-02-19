@@ -1,68 +1,69 @@
-# BÁO CÁO NGHIÊN CỨU THỊ TRƯỜNG - 2026-02-16
+# BÁO CÁO NGHIÊN CỨU THỊ TRƯỜNG - 2026-02-19
 
-Chào bạn, hôm nay là ngày 16 tháng 2 năm 2026. Với vai trò là một chuyên gia nghiên cứu thị trường và tìm kiếm nguồn hàng tại Việt Nam, tôi xin trình bày kết quả nghiên cứu về 50 cuốn sách đang hot nhất hiện nay. Dữ liệu được tổng hợp từ Tiki, Shopee và các bảng xếp hạng sách bán chạy.
+Chào bạn, hôm nay, ngày 19/02/2026, tôi sẽ thực hiện nghiên cứu thị trường sách đang hot tại Việt Nam và cung cấp cho bạn bảng tổng hợp nguồn hàng tiềm năng.
 
-Dưới đây là bảng tổng hợp 50 cuốn sách đang được ưa chuộng tại Việt Nam, phân loại theo thể loại và nguồn nhập đề xuất. Lưu ý rằng giá sỉ/chiết khấu ước tính có thể thay đổi tùy thuộc vào số lượng đặt hàng và chính sách của từng nhà cung cấp.
+Dựa trên các nguồn thông tin tổng hợp được, đây là bảng tổng hợp 50 cuốn sách đang hot nhất tại Việt Nam, cùng với thông tin về thể loại, phân loại chi tiết, nguồn nhập đề xuất và chiết khấu ước tính (lưu ý chiết khấu có thể thay đổi tùy theo số lượng và chính sách của nhà cung cấp):
 
 | Thể loại | Tên sách | Phân loại chi tiết | Nguồn nhập đề xuất | Giá sỉ/Chiết khấu ước tính |
 |---|---|---|---|---|
-| Văn học | "Sách Đạo Lý Hay Mỗi Ngày" | Truyện ngắn, tản văn | Các nhà xuất bản, Fahasa, Tiki, Shopee | Chiết khấu 20-40% |
-| Tâm lý - Kỹ năng sống | Đắc Nhân Tâm | Kỹ năng giao tiếp | First News, NXB Tổng hợp TP.HCM | Chiết khấu 25-45% |
-| Phát triển bản thân | 7 Thói Quen Hiệu Quả | Kỹ năng lãnh đạo | First News, Tiki | Chiết khấu 20-40% |
-| Văn học | Nhà Giả Kim | Tiểu thuyết | First News, Tiki | Chiết khấu 20-40% |
-| Tâm lý - Kỹ năng sống | Tuổi Trẻ Đáng Giá Bao Nhiêu? | Kỹ năng sống, định hướng | NXB Hội Nhà Văn | Chiết khấu 25-45% |
-| Kinh tế | Nghĩ Giàu Làm Giàu | Tài chính cá nhân | First News | Chiết khấu 20-40% |
-| Tâm linh | Muôn Kiếp Nhân Sinh (Bộ 3 tập) | Tâm linh, nhân quả | First News | Chiết khấu 20-40% |
-| Văn học | Cây Cam Ngọt Của Tôi | Tiểu thuyết | NXB Văn Học, Tiki | Chiết khấu 20-40% |
-| Tâm lý - Kỹ năng sống | Cho Đời Nhẹ Lên Cao | Kỹ năng sống, hạnh phúc | Fahasa | Chiết khấu 20-40% |
-| Tâm lý - Kỹ năng sống | Đời Thay Đổi Khi Chúng Ta Thay Đổi | Tư duy tích cực | Fahasa | Chiết khấu 20-40% |
-| Kinh tế | Triết Lý Kinh Doanh Của Kyocera | Quản trị kinh doanh | Tiki | Chiết khấu 15-30% |
-| Văn học | Tĩnh Lặng | Thiền, an lạc | Tiki | Chiết khấu 20-40% |
-| Tâm lý - Kỹ năng sống | Wabi Sabi Thương Những Điều Không Hoàn Hảo | Kỹ năng sống, chấp nhận | Tiki | Chiết khấu 20-40% |
-| Kinh tế | Bán Chạy Như Điên | Marketing, bán hàng | Shopee | Chiết khấu 15-30% |
-| Văn học | Nhóc Nicolas - Những Chuyện Chưa Kể | Văn học thiếu nhi | Fahasa | Chiết khấu 20-40% |
-| Tâm lý | Thao Túng Tâm Lý Trong Giao Tiếp | Giao tiếp, ứng xử | Tiki | Chiết khấu 25-45% |
-| Phát triển bản thân | Mặt Dày Tâm Đen (Tái Bản) | Tư duy, bản lĩnh | Tiki | Chiết khấu 20-40% |
-| Tâm lý - Kỹ năng sống | Bí mật - The Secret | Luật hấp dẫn | Tiki | Chiết khấu 20-40% |
-| Kinh tế | Lý Thuyết Trò Chơi | Kinh tế học | Tiki | Chiết khấu 20-40% |
-| Tâm lý - Kỹ năng sống | Sống Hết Mình Mỗi Ngày | Phát triển bản thân | Fahasa | Chiết khấu 20-40% |
-| Tâm lý - Kỹ năng sống | 365 Ngày Ôm Lấy Chính Mình | Chữa lành tâm hồn | Fahasa | Chiết khấu 20-40% |
-| Tâm lý - Kỹ năng sống | Đếm Cuộc Đời Bằng Nụ Cười | Tư duy tích cực | Fahasa | Chiết khấu 20-40% |
-| Tâm lý - Kỹ năng sống | Ước Mơ Của Bạn Nhất Định Thành Hiện Thực | Truyền cảm hứng | Fahasa | Chiết khấu 20-40% |
-| Tâm lý - Kỹ năng sống | Chọn Sống Hạnh Phúc | Tâm lý học tích cực | Fahasa | Chiết khấu 20-40% |
-| Kinh tế | 36 Kế Chinh Phục Khách Hàng | Bán hàng, marketing | Shopee | Chiết khấu 15-30% |
-| Phát triển bản thân | Tái Tạo Bản Thân - Reinventing You | Phát triển thương hiệu cá nhân | PACE Books | Liên hệ trực tiếp PACE |
-| Văn học | Glyph | Tiểu thuyết | The Guardian, Amazon | Liên hệ NXB |
-| Văn học | Vigil | Tiểu thuyết | The Guardian, Amazon | Liên hệ NXB |
-| Văn học | Departure(s) | Hồi ký, hư cấu | The Guardian, Amazon | Liên hệ NXB |
-| Văn học | Half His Age | Tiểu thuyết | Các nhà xuất bản | Chiết khấu 20-40% |
-| Văn học | The News from Dublin | Truyện ngắn | Các nhà xuất bản | Chiết khấu 20-40% |
-| Văn học | John of John | Tiểu thuyết | Các nhà xuất bản | Chiết khấu 20-40% |
-| Văn học | I'll Take the Fire | Tiểu thuyết | Các nhà xuất bản | Chiết khấu 20-40% |
-| Văn hóa | Sách Tết Bính Ngọ 2026 | Văn hóa truyền thống | Các nhà xuất bản | Chiết khấu 20-40% |
-| Tâm lý | Thuyết Mặc Kệ Họ | Kỹ năng sống | First News | Chiết khấu 20-40% |
-| Tâm lý | Chăm Sóc Bản Thân Thật Sự | Kỹ năng sống | First News | Chiết khấu 20-40% |
-| Lịch sử | Đại Việt Sử Ký Toàn Thư | Lịch sử Việt Nam | NXB Văn Học | Chiết khấu 20-40% |
-| Văn học | Trời Xanh Ngập Nắng | Văn học thiếu nhi | NXB Kim Đồng | Chiết khấu 20-40% |
-| Kỹ năng | Quy Tắc Không Phàn Nàn | Kỹ năng sống | NXB Lao Động | Chiết khấu 20-40% |
-| Văn học | Truyện Đọc Lịch Sử Việt Nam | Lịch sử Việt Nam | NXB Thông Tin và Truyền Thông | Chiết khấu 20-40% |
-| Lịch sử | Hồ Sơ Mật Lầu Năm Góc và Hồi Ức Về Chiến Tranh Việt Nam | Lịch sử chiến tranh | NXB Chính trị Quốc gia Sự thật | Chiết khấu 20-40% |
-| Kinh tế | Power Vs Force - Trường Năng Lượng Và Những Nhân Tố Quyết Định Tinh | Tâm lý, năng lượng | Tiki | Chiết khấu 15-30% |
-| Nuôi dạy con | Sách Đọc Vị Tuổi Dậy Thì Và Hội Chứng Tuổi Teen | Tâm lý tuổi teen | Tiki | Chiết khấu 20-40% |
-| Kinh tế | Think And Grow Rich - 13 Nguyên Tắc Nghĩ Giàu Làm Giàu | Tài chính cá nhân | Tiki | Chiết khấu 15-30% |
-| Kỹ năng | Khiêu Vũ Với Ngòi Bút (Tái Bản) | Kỹ năng viết | Tiki | Chiết khấu 20-40% |
-| Ngoại ngữ | Bài Học Tiếng Hy Lạp | Học tiếng Hy Lạp | Fahasa | Chiết khấu 20-40% |
-| Văn học | Bách Gia Tranh Minh | Triết học phương Đông | Fahasa | Chiết khấu 20-40% |
-| Văn học | The Downfall of the Nguyễn Dynasty | Lịch sử Việt Nam (tiếng Anh) | Các nhà xuất bản | Chiết khấu 20-40% |
-| Sách cho trẻ em | Bộ sách Ehon Nhật Bản | Sách tranh, giáo dục sớm | Tiki | Chiết khấu 20-40% |
+| Văn học | Cây cam ngọt của tôi | Tiểu thuyết | NXB Nhã Nam | 20-30% |
+| Kinh tế | Sapiens - Lược sử loài người | Lịch sử, Khoa học | NXB Trẻ | 25-35% |
+| Tâm lý | Muôn kiếp nhân sinh | Tâm linh, Chiêm nghiệm | Công ty sách Alpha | 20-30% |
+| Kỹ năng sống | Đắc nhân tâm | Giao tiếp, Ứng xử | NXB Tổng hợp TP.HCM | 25-35% |
+| Kỹ năng sống | Tuổi trẻ đáng giá bao nhiêu? | Phát triển bản thân | NXB Hội Nhà văn | 20-30% |
+| Văn học | Nhà giả kim | Tiểu thuyết | NXB Văn học | 25-35% |
+| Kinh tế | Nghĩ giàu làm giàu | Tài chính cá nhân | NXB Lao động | 20-30% |
+| Tâm lý | Dám bị ghét | Triết học, Tâm lý học | Công ty sách Thái Hà | 25-35% |
+| Kỹ năng sống | Sống đơn giản cho mình thanh thản | Phong cách sống | NXB Lao động Xã hội | 20-30% |
+| Văn học | Đại Việt sử ký toàn thư | Lịch sử | NXB Văn học | 25-35% |
+| Kỹ năng sống | Quy tắc không phàn nàn | Tư duy tích cực | NXB Lao động | 20-30% |
+| Văn học | Hoàng Tử Bé | Tiểu thuyết | NXB Kim Đồng | 25-35% |
+| Văn học | Don Quixote | Tiểu thuyết | NXB Văn học | 20-30% |
+| Văn học | The Hobbit | Tiểu thuyết | NXB Trẻ | 25-35% |
+| Kinh tế | Tư duy ngược | Tư duy | Sbooks, NXB Dân Trí | 20-30% |
+| Văn học | Theo dấu chân người | Truyện ký | NXB Quân đội Nhân dân | 25-35% |
+| Lịch sử | Lịch sử Việt Nam bằng hình | Lịch sử | FAHASA | 20-30% |
+| Văn học | Thư cho em: Chuyện tình tướng Hoàng Đan và vợ qua lời kể con trai | Tiểu sử | NXB Quân đội Nhân dân | 25-35% |
+| Văn học | Gánh gánh... gồng gồng... | Hồi ký | NXB Hội Nhà văn | 20-30% |
+| Văn học | Mưa đỏ | Tiểu thuyết lịch sử | NXB Quân đội Nhân dân | 25-35% |
+| Kinh tế | Chiến trường bán dẫn: Cạnh tranh chiến lược và tự chủ đổi mới sáng tạo của Trung Quốc thế kỷ 21 | Kinh tế chính trị | TIMES | 20-30% |
+| Kỹ năng sống | Bán chạy như điên | Marketing | Master Anh Đức | 25-35% |
+| Kỹ năng sống | Trước bình minh | Phát triển bản thân | Master Anh Đức | 20-30% |
+| Tâm lý | Tĩnh Lặng | Thiền | NXB Tôn Giáo | 25-35% |
+| Kỹ năng sống | Truyền Thông Theo Phong Cách Win-Win | Giao tiếp | Phạm Sông Thu | 20-30% |
+| Tâm lý | Đọc Vị Tuổi Dậy Thì Và Hội Chứng Tuổi Teen | Tâm lý lứa tuổi | Lee Jin Ah | 25-35% |
+| Kinh tế | Jim Rohn – Đánh Thức Năng Lực Làm Việc & Học Tập | Bizbooks | 20-30% |
+| Tâm lý | Bản Ngã - Thấu Hiểu Và Tan Biến | David R. Hawkins MD | 25-35% |
+| Kỹ năng sống | Kỷ Luật Bản Thân | Richard Guare, Peg Dawson | 20-30% |
+| Kỹ năng sống | Lý Thuyết Trò Chơi | Trần Phách Hàm | 25-35% |
+| Kỹ năng sống | Bản Đồ Tâm Thức | David R. Hawkins | 20-30% |
+| Kỹ năng sống | Dám Mất Lòng | Tương Bình | 25-35% |
+| Kỹ năng sống | Định Vị Bản Thân | Jeffrey Bussgang | 20-30% |
+| Kỹ năng sống | Nuôi Dưỡng Trí Não - Cân Bằng Cảm Xúc | Sekine Tomoyuki | 25-35% |
+| Kỹ năng sống | Mưu Lược Dụng Nhân Xử Thế | Atsumori Ueda | 20-30% |
+| Kinh tế | Sức Mạnh Của Sự Túng Quẫn | Daymond John, Daniel Paisner | 25-35% |
+| Tâm lý | Bản Chất Của Dối Trá | Dan Ariely | 20-30% |
+| Tâm linh | Combo 4Q: Muôn Kiếp Nhân Sinh + Giận + Hành Trình Về Phương Đông + Fear - Sợ Hãi - Thích Nhất Hạnh | |  | 25-35% |
+| Tâm linh | Combo 2Q: Muôn Kiếp Nhân Sinh + Không Diệt Không Sinh Đừng Sợ Hãi | Thích Nhất Hạnh |  | 20-30% |
+| Kỹ năng sống | Combo Sách Hay: Cư Xử Như Đàn Bà Suy Nghĩ Như Đàn Ông + Phụ Nữ Lãnh Đạo Bằng Yêu Thương | |  | 25-35% |
+| Kinh tế | Đô La Mỹ Và Quyền Lực Thống Trị Toàn Cầu | Paul Blustein |  | 20-30% |
+| Văn học | Thương Tiến Tửu | Đường Tửu Khanh |  | 25-35% |
+| Tâm lý | Tính Bản Ác | M. Scott Peck | | 20-30% |
+| Kinh tế | Combo 2 Cuốn Sách: Bán Chạy Như Điên - Trước Bình Minh | Master Anh Đức |  | 25-35% |
+| Kỹ năng sống | Combo Sách: 36 kế Chinh Phục Khách Hàng, Vua Bán Hàng, Quy Luật | |  | 20-30% |
+| Kỹ năng sống | Sống thực tế giữa đời thực dụng | Mễ Mông |  | 25-35% |
+| Tâm lý | Đàn ông sao Hoả, Đàn bà sao Kim | John Gray |  | 20-30% |
+| Kỹ năng sống | Bạn đắt giá bao nhiêu? | Vãn Tình |  | 25-35% |
+| Tâm lý | Nóng giận là bản năng, tĩnh lặng là bản lĩnh | Tống Mặc |  | 20-30% |
+| Kinh tế | Power Vs Force - Trường Năng Lượng Và Những Nhân Tố Quyết Định Tinh Thần Và Sức Khỏe Con Người |  |  | 25-35% |
 
-**Lưu ý:** 
-*   Giá sỉ và chiết khấu có thể thay đổi tùy thuộc vào số lượng đặt hàng và chính sách của từng nhà cung cấp.
-*   Nguồn nhập đề xuất chỉ mang tính tham khảo, bạn nên liên hệ trực tiếp với các nhà xuất bản hoặc tổng kho để có thông tin chi tiết và cập nhật nhất.
-*   Các đầu sách "kinh điển" vẫn luôn có sức hút lớn và được tái bản thường xuyên. Bên cạnh đó, các đầu sách về phát triển bản thân, kỹ năng sống, và tâm lý học vẫn tiếp tục được ưa chuộng trong năm 2026.
-*   Xu hướng tìm kiếm những ấn phẩm có giá trị văn hóa sâu sắc và có thể trở thành quà tặng đang được quan tâm.
+**Lưu ý:**
 
-Hy vọng bảng tổng hợp này sẽ hữu ích cho công việc tìm kiếm nguồn hàng của bạn. Chúc bạn thành công!
+*   **Nguồn nhập đề xuất:** Ngoài các NXB lớn, bạn có thể liên hệ các tổng kho sách như Fahasa, Phương Nam, hoặc các nhà sách lớn như Nhã Nam.
+*   **Giá sỉ/Chiết khấu ước tính:** Mức chiết khấu có thể dao động tùy thuộc vào số lượng đặt hàng, chính sách của từng nhà cung cấp, và các chương trình khuyến mãi. Bạn nên liên hệ trực tiếp để có thông tin chi tiết.
+*   **Tính cập nhật:** Thị trường sách luôn thay đổi, nên việc thường xuyên cập nhật thông tin là rất quan trọng.
+
+Hy vọng bảng tổng hợp này hữu ích cho công việc tìm kiếm nguồn hàng của bạn!
 
 
 ---

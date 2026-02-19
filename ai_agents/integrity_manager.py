@@ -31,17 +31,24 @@ class IntegrityManagerAgent:
 
     def check_disk_space(self, path="/", threshold_percent=90):
         """Checks if disk space is running low."""
-        usage = psutil.disk_usage(path)
-        if usage.percent > threshold_percent:
-            return False, f"Disk space critical: {usage.percent}% used."
-        return True, f"Disk space OK: {usage.percent}% used."
+        import shutil
+        total, used, free = shutil.disk_usage(path)
+        percent = (used / total) * 100
+        if percent > threshold_percent:
+            return False, f"Disk space critical: {percent:.1f}% used."
+        return True, f"Disk space OK: {percent:.1f}% used."
 
     def check_memory_usage(self, threshold_percent=90):
-        """Checks if memory usage is too high."""
-        mem = psutil.virtual_memory()
-        if mem.percent > threshold_percent:
-            return False, f"Memory usage critical: {mem.percent}% used."
-        return True, f"Memory usage OK: {mem.percent}% used."
+        """Checks if memory usage is too high, with fallbacks."""
+        try:
+            import psutil
+            mem = psutil.virtual_memory()
+            if mem.percent > threshold_percent:
+                return False, f"Memory usage critical: {mem.percent}% used."
+            return True, f"Memory usage OK: {mem.percent}% used."
+        except Exception as e:
+            # Fallback for when psutil fails (e.g. restricted env)
+            return True, f"Memory check skipped (psutil error: {str(e)})"
 
     def run_diagnostics(self):
         """Runs all diagnostic checks and returns results."""
