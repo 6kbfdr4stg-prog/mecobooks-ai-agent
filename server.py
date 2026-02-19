@@ -475,22 +475,22 @@ async def get_dashboard_stats(username: str = Depends(get_current_username)):
             "disk": disk_percent
         }
         
-        # 2. WooCommerce Stats (Remote)
-        def fetch_woo_stats():
-            from woocommerce_client import WooCommerceClient
-            woo = WooCommerceClient()
-            sales_month = woo.get_sales_report(period="month")
+        # 2. Business Stats (Pivoted to Haravan)
+        def fetch_business_stats():
+            from haravan_client import HaravanClient
+            hrv = HaravanClient()
+            sales_month = hrv.get_sales_report(period="month")
             return {
                 "sales_total": sales_month.get("total_sales", 0),
                 "orders_count": sales_month.get("total_orders", 0),
                 "new_customers": sales_month.get("total_customers", 0)
             }
             
-        woo_stats = await asyncio.to_thread(fetch_woo_stats)
+        business_stats = await asyncio.to_thread(fetch_business_stats)
         
         return {
             "system": system_health,
-            "business": woo_stats
+            "business": business_stats
         }
     except Exception as e:
         print(f"Stats Error: {e}")

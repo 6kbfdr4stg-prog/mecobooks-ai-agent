@@ -118,30 +118,47 @@ class HaravanClient:
             print(f"Error fetching orders: {e}")
             return []
 
-    def search_order(self, query):
+    def get_sales_report(self, period="month"):
         """
-        Search for an order by name (e.g., #1001) or email.
-        Note: Haravan/Shopify API search is limited. 
-        We'll try to use the 'name' filter if it looks like an order number,
-        otherwise we might need to list and filter (inefficient) or use search endpoint if available.
-        For now, let's assume query is Order Name (e.g. '1001')
+        Calculates sales statistics for the given period.
+        Currently supports 'month' (current calendar month).
         """
+        from datetime import datetime
+        now = datetime.now()
+        
+        if period == "month":
+            # First day of current month
+            start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        else:
+            # Default to last 30 days if unknown
+            start_date = now.replace(day=1) # Simplified for now
+            
         endpoint = f"{self.shop_url}/admin/orders.json"
-        # If query starts with #, strip it
-        name = query.replace("#", "")
         params = {
-            "name": name,
+            "created_at_min": start_date.isoformat(),
             "status": "any",
-             "fields": "id,name,email,financial_status,fulfillment_status,total_price,line_items,created_at"
+            "fields": "total_price,created_at"
         }
+        
         try:
             response = requests.get(endpoint, headers=self.headers, params=params)
             response.raise_for_status()
             orders = response.json().get('orders', [])
-            return orders
-        except requests.exceptions.RequestException as e:
-            print(f"Error searching order {query}: {e}")
-            return []
+            
+            total_sales = 0
+            for order in orders:
+                total_sales += float(order.get('total_price', 0))
+                
+            return {
+                "total_sales": total_sales,
+                "total_orders": len(orders),
+                "total_customers": len(set(order.get('email') for order in orders if order.get('email')))
+            }
+        except Exception as e:
+            print(f"Haravan Sales Report Error: {e}")
+            return {"total_sales": 0, "total_orders": 0, "total_customers": 0}
+
+    def search_order(self, query):
 
 if __name__ == "__main__":
     # Test the client
