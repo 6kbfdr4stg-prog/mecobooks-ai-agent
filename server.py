@@ -1,13 +1,40 @@
-from fastapi import FastAPI, HTTPException, Request, Response, Form, File, UploadFile, BackgroundTasks, Body
+from fastapi import FastAPI, HTTPException, Request, Response, Form, File, UploadFile, BackgroundTasks, Body, Depends, status
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 from ai_agents.sales_support import SalesSupportAgent
+# Removed SQLAlchemy imports
+from database import get_db_connection, init_db
 import uvicorn
 import os
 import requests
+import glob
+import sqlite3
+from datetime import datetime
+
+# Initialize Database
+init_db()
 
 app = FastAPI(title="Haravan AI Chatbot API")
+security = HTTPBasic()
+
+# Authentication Dependency
+def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_username = os.environ.get("ADMIN_USER", "admin")
+    correct_password = os.environ.get("ADMIN_PASSWORD", "admin")
+    
+    import secrets
+    is_correct_username = secrets.compare_digest(credentials.username, correct_username)
+    is_correct_password = secrets.compare_digest(credentials.password, correct_password)
+    
+    if not (is_correct_username and is_correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
 
 # Enable CORS for WordPress
 app.add_middleware(
@@ -24,6 +51,39 @@ import time
 import schedule
 import scheduler  # This imports the job definitions from scheduler.py
 
+def sync_reports_to_db():
+    """One-time sync of Markdown files to Database."""
+    report_dir = "reports"
+    if not os.path.exists(report_dir):
+        return
+        
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    for filepath in glob.glob(os.path.join(report_dir, "*.md")):
+        filename = os.path.basename(filepath)
+        if filename == "README.md":
+            continue
+            
+        # Check if already exists in DB
+        c.execute("SELECT id FROM reports WHERE agent_name = ?", (filename,))
+        if c.fetchone():
+            continue
+            
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+            
+        # Infer agent name and time from filename/metadata
+        # simplistic mapping for now, using filename as key identifier
+        stat = os.stat(filepath)
+        created_at = datetime.fromtimestamp(stat.st_mtime)
+        
+        c.execute("INSERT INTO reports (agent_name, report_type, content, created_at) VALUES (?, ?, ?, ?)",
+                  (filename, "markdown", content, created_at))
+    
+    conn.commit()
+    conn.close()
+
 def run_scheduler_loop():
     print("⏳ [Background] Scheduler loop started...")
     while True:
@@ -35,6 +95,13 @@ def run_scheduler_loop():
 
 @app.on_event("startup")
 async def start_scheduler():
+    # Sync Reports
+    try:
+        sync_reports_to_db()
+        print("✅ [System] Reports synced to Database.")
+    except Exception as e:
+        print(f"⚠️ [System] Report sync failed: {e}")
+
     # Start the scheduler in a separate daemon thread
     t = threading.Thread(target=run_scheduler_loop, daemon=True)
     t.start()
@@ -64,54 +131,35 @@ class ChatRequest(BaseModel):
 FB_VERIFY_TOKEN = os.environ.get("FB_VERIFY_TOKEN", "my_secure_verify_token")
 FB_PAGE_ACCESS_TOKEN = os.environ.get("FB_PAGE_ACCESS_TOKEN")
 
+# Dependency - Removed get_db as it's no longer needed with direct sqlite3 connections
+
 @app.post("/run-agent")
 async def run_agent_endpoint(data: dict = Body(...)):
     """
-    Endpoint for n8n/External triggers to run specific agents.
-    Ex: {"agent": "content_creator"}
+    Endpoint for n8n/External triggers. Publicly accessible (or protect if needed).
     """
     agent_name = data.get("agent")
     
-    # 1. Content Creator
-    if agent_name == "content_creator":
-        from ai_agents.content_creator import ContentCreatorAgent
-        agent = ContentCreatorAgent()
-        # Run in background to avoid timeout
-        import threading
+    if agent_name in ["content_creator", "inventory_analyst", "strategic_analyst", "integrity_manager", "market_research"]:
+        # Dynamic class loading is risky, stick to explicit map or simple if-else for safety
+        if agent_name == "content_creator":
+            from ai_agents.content_creator import ContentCreatorAgent
+            agent = ContentCreatorAgent()
+        elif agent_name == "inventory_analyst":
+            from ai_agents.inventory_analyst import InventoryAnalystAgent
+            agent = InventoryAnalystAgent()
+        elif agent_name == "strategic_analyst":
+            from ai_agents.strategic_analyst import StrategicAnalystAgent
+            agent = StrategicAnalystAgent()
+        elif agent_name == "integrity_manager":
+            from ai_agents.integrity_manager import IntegrityManagerAgent
+            agent = IntegrityManagerAgent()
+        elif agent_name == "market_research":
+            from ai_agents.market_research import MarketResearchAgent
+            agent = MarketResearchAgent()
+            
         threading.Thread(target=agent.run).start()
-        return {"status": "started", "agent": "content_creator"}
-        
-    # 2. Inventory Analyst
-    elif agent_name == "inventory_analyst":
-        from ai_agents.inventory_analyst import InventoryAnalystAgent
-        agent = InventoryAnalystAgent()
-        import threading
-        threading.Thread(target=agent.run).start()
-        return {"status": "started", "agent": "inventory_analyst"}
-        
-    # 3. Strategic Analyst
-    elif agent_name == "strategic_analyst":
-        from ai_agents.strategic_analyst import StrategicAnalystAgent
-        agent = StrategicAnalystAgent()
-        import threading
-        threading.Thread(target=agent.run).start()
-        return {"status": "started", "agent": "strategic_analyst"}
-        
-    # 4. Integrity Manager
-    elif agent_name == "integrity_manager":
-        from ai_agents.integrity_manager import IntegrityManagerAgent
-        agent = IntegrityManagerAgent()
-        import threading
-        threading.Thread(target=agent.run).start()
-        return {"status": "started", "agent": "integrity_manager"}
-    
-    # 5. Market Research
-    elif agent_name == "market_research":
-        from ai_agents.market_research import MarketResearchAgent
-        agent = MarketResearchAgent()
-        import threading
-        threading.Thread(target=agent.run).start()
-        return {"status": "started", "agent": "market_research"}
+        return {"status": "started", "agent": agent_name}
         
     return {"status": "error", "message": "Unknown agent"}
 
@@ -162,8 +210,6 @@ async def fb_verify(request: Request):
     challenge = params.get("hub.challenge")
 
     if mode and token:
-        if mode == "subscribe" and token == FB_VERIFY_TOKEN:
-            print("WEBHOOK_VERIFIED")
         if mode == "subscribe" and token == FB_VERIFY_TOKEN:
             print("WEBHOOK_VERIFIED")
             return Response(content=challenge, media_type="text/plain")
@@ -354,89 +400,83 @@ async def list_videos():
     }
 
 @app.get("/api/reports")
-async def list_reports():
-    """List all saved reports with metadata."""
-    import glob
-    from datetime import datetime as dt
+async def list_reports(username: str = Depends(get_current_username)):
+    """List all saved reports from Database."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    reports = c.execute("SELECT * FROM reports ORDER BY created_at DESC").fetchall()
     
-    report_dir = "reports"
-    if not os.path.exists(report_dir):
-        return {"reports": []}
-    
-    reports = []
-    for filepath in sorted(glob.glob(os.path.join(report_dir, "*.md")), key=os.path.getmtime, reverse=True):
-        filename = os.path.basename(filepath)
-        if filename == "README.md":
-            continue
-        stat = os.stat(filepath)
-        size_kb = round(stat.st_size / 1024, 1)
-        modified = dt.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Friendly name from filename
-        name = filename.replace("_latest.md", "").replace("_", " ").title()
-        
-        reports.append({
-            "filename": filename,
-            "name": name,
-            "modified": modified,
-            "size_kb": size_kb
+    results = []
+    for r in reports:
+        # r is sqlite3.Row, access by name
+        results.append({
+            "id": r["id"],
+            "filename": r["agent_name"] + ("" if ".md" in r["agent_name"] else ".md"), # Keep compatible with old filename usage
+            "name": r["agent_name"].replace("_latest.md", "").replace(".md", "").replace("_", " ").title(),
+            "modified": r["created_at"],
+            "size_kb": round(len(r["content"])/1024, 1)
         })
-    
-    return {"reports": reports}
+    conn.close()
+    return {"reports": results}
 
-@app.get("/api/reports/{filename}")
-async def get_report(filename: str):
-    """Read content of a specific report file."""
-    # Security: prevent path traversal
-    if ".." in filename or "/" in filename:
-        raise HTTPException(status_code=400, detail="Invalid filename")
+@app.get("/api/reports/{report_id}")
+async def get_report_by_id(report_id: str, username: str = Depends(get_current_username)):
+    """Read content of a specific report using ID or Filename (legacy support)."""
+    conn = get_db_connection()
+    c = conn.cursor()
     
-    filepath = os.path.join("reports", filename)
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="Report not found")
+    # Try by ID first
+    if report_id.isdigit():
+        report = c.execute("SELECT * FROM reports WHERE id = ?", (int(report_id),)).fetchone()
+    else:
+        # Legacy/Filename fallback
+        report = c.execute("SELECT * FROM reports WHERE agent_name = ?", (report_id,)).fetchone()
+        
+    conn.close()
     
-    with open(filepath, "r", encoding="utf-8") as f:
-        content = f.read()
-    
-    stat = os.stat(filepath)
-    from datetime import datetime as dt
-    modified = dt.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
-    
+    if not report:
+         raise HTTPException(status_code=404, detail="Report not found")
+         
     return {
-        "filename": filename,
-        "modified": modified,
-        "content": content
+        "filename": report["agent_name"],
+        "modified": report["created_at"],
+        "content": report["content"]
     }
 
 @app.get("/api/stats")
-async def get_dashboard_stats():
+async def get_dashboard_stats(username: str = Depends(get_current_username)):
     """
-    Returns dashboard statistics (sales, inventory, system health).
+    Returns dashboard statistics (Protected).
     """
     import psutil
     import asyncio
-    from datetime import datetime
+    
     try:
         # 1. System Health (Local)
-        cpu_usage = psutil.cpu_percent()
-        memory = psutil.virtual_memory()
-        disk = psutil.disk_usage('/')
+        try:
+            import psutil
+            cpu_usage = psutil.cpu_percent()
+            memory = psutil.virtual_memory()
+            mem_percent = memory.percent
+            disk = psutil.disk_usage('/')
+            disk_percent = disk.percent
+        except (ImportError, AttributeError, Exception):
+            # Fallback if psutil is missing or fails
+            cpu_usage = 0
+            mem_percent = 0
+            disk_percent = 0
         
         system_health = {
             "cpu": cpu_usage,
-            "memory": memory.percent,
-            "disk": disk.percent
+            "memory": mem_percent,
+            "disk": disk_percent
         }
         
         # 2. WooCommerce Stats (Remote)
-        # Run in thread to not block
         def fetch_woo_stats():
             from woocommerce_client import WooCommerceClient
             woo = WooCommerceClient()
-            
-            # Sales (Last 7 days vs Month)
             sales_month = woo.get_sales_report(period="month")
-            
             return {
                 "sales_total": sales_month.get("total_sales", 0),
                 "orders_count": sales_month.get("total_orders", 0),
@@ -454,9 +494,9 @@ async def get_dashboard_stats():
         return {"error": str(e)}
 
 @app.post("/run-agent-sync/{agent_name}")
-async def run_agent_sync(agent_name: str):
+async def run_agent_sync(agent_name: str, username: str = Depends(get_current_username)):
     """
-    Runs an agent synchronously (but non-blocking for the server) and returns the result/report.
+    Runs an agent synchronously and saves result to DB.
     """
     import asyncio
 
@@ -467,52 +507,58 @@ async def run_agent_sync(agent_name: str):
                 from ai_agents.content_creator import ContentCreatorAgent
                 agent = ContentCreatorAgent()
                 result = agent.run()
-                
             elif name == "inventory_analyst":
                 from ai_agents.inventory_analyst import InventoryAnalystAgent
                 agent = InventoryAnalystAgent()
                 result = agent.run()
-                
             elif name == "market_research":
                 from ai_agents.market_research import MarketResearchAgent
                 agent = MarketResearchAgent()
                 result = agent.run()
-                
             elif name == "integrity_manager":
                 from ai_agents.integrity_manager import IntegrityManagerAgent
                 agent = IntegrityManagerAgent()
+                # Integrity manager returns a path
                 report_path = agent.run()
-                # Read the report content
                 if os.path.exists(report_path):
-                    with open(report_path, "r", encoding="utf-8") as f:
-                        result = {"report_path": report_path, "content": f.read()}
+                     with open(report_path, "r", encoding="utf-8") as f:
+                        result = f.read()
                 else:
-                    result = {"report_path": report_path, "content": "Report file not found."}
-            
+                    result = "Report generation failed."
             else:
                  raise HTTPException(status_code=400, detail="Unknown agent")
 
-            return {"status": "success", "agent": name, "output": result}
-
+            return result # Return raw content or path depending on agent
         except Exception as e:
             import traceback
             traceback.print_exc()
-            return {"status": "error", "message": str(e)}
+            return f"Error: {str(e)}"
 
-    # Run the blocking code in a separate thread
-    return await asyncio.to_thread(_run_agent_logic, agent_name)
+    # Run agent
+    content = await asyncio.to_thread(_run_agent_logic, agent_name)
+    
+    # Save to Database
+    if content and isinstance(content, str):
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("INSERT INTO reports (agent_name, report_type, content, created_at) VALUES (?, ?, ?, ?)",
+                  (f"{agent_name}_{datetime.now().strftime('%Y%m%d%H%M')}.md", "markdown", content, datetime.utcnow()))
+        conn.commit()
+        conn.close()
+
+    return {"status": "success", "agent": agent_name, "output": content}
 
 @app.get("/verify", response_class=HTMLResponse)
-async def verification_dashboard():
+async def verification_dashboard(username: str = Depends(get_current_username)):
     """
-    Serves the Verification Dashboard.
+    Serves the Verification Dashboard (Protected).
     """
     try:
         with open("templates/verification.html", "r", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
-        return "<h1>Verification Dashboard Not Found</h1><p>Please ensure templates/verification.html exists.</p>"
+        return "<h1>Verification Dashboard Not Found</h1>"
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("server:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("server:app", host="0.0.0.0", port=port)

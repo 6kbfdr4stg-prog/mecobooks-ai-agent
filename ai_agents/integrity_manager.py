@@ -2,9 +2,19 @@ import os
 import subprocess
 import socket
 import requests
-import psutil
+import shutil # Moved from check_disk_space
 import logging
 from datetime import datetime
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    logging.warning("psutil not found. System stats will be unavailable.")
 
 class IntegrityManagerAgent:
     def __init__(self):

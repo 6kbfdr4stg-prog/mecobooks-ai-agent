@@ -18,3 +18,4 @@ gTTS
 imageio
 numpy
 psutil
+sqlalchemy
