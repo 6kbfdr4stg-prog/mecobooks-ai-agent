@@ -580,7 +580,8 @@ async def generate_video_api(report_id: int, username: str = Depends(get_current
     
     # Simple Parsing Logic
     import re
-    title_match = re.search(r"Marketing Content: (.*)\n", content)
+    # Extract clean title: Marketing Content: Name -> Name
+    title_match = re.search(r"Marketing Content: (.*?)(?:\n|\()", content)
     script_match = re.search(r"### 🎬 Video Script \(Shorts/Reels\)\n\n([\s\S]*?)\n\n", content)
     
     if not title_match or not script_match:
@@ -597,7 +598,9 @@ async def generate_video_api(report_id: int, username: str = Depends(get_current
     # Fetch Product Image URL from WooCommerce (Search by title)
     from woocommerce_client import WooCommerceClient
     woo = WooCommerceClient()
-    products = woo.search_products(title, limit=1)
+    # Search with a cleaner title to improve hits and speed
+    search_query = title.split("(")[0].strip()
+    products = woo.search_products(search_query, limit=1)
     
     image_url = "https://placehold.co/1080x1920?text=MecoBooks+AI"
     if products:

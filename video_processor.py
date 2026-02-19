@@ -22,10 +22,25 @@ class VideoProcessor:
         pass
 
     def _download_image(self, url):
+        """Downloads image or returns a fallback solid color image if failed"""
         try:
+            # Try to fix MoviePy / ImageMagick issues for Linux if they exist
+            # Note: We don't use TextClip, so this is mostly defensive
+            try:
+                from moviepy.config import change_settings
+                if os.name != 'nt': # Linux/Mac
+                    change_settings({"IMAGEMAGICK_BINARY": "convert"})
+            except:
+                pass
+
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             }
+            # If it's the placeholder URL, let's just create it ourselves to be safe and fast
+            if "placehold.co" in url:
+                 print("🛠️ Using internal fallback image generator")
+                 return self._create_solid_image("MecoBooks AI")
+
             response = requests.get(url, headers=headers, timeout=20)
             if response.status_code == 200:
                 print(f"✅ Image downloaded successfully: {url}")
@@ -34,7 +49,16 @@ class VideoProcessor:
                 print(f"❌ Failed to download image. Status code: {response.status_code}")
         except Exception as e:
             print(f"❌ Error downloading image: {e}")
-        return None
+        
+        # FINAL FALLBACK: Create a nice gradient or solid image
+        print("⚠️ Using final fallback image")
+        return self._create_solid_image("MecoBooks AI")
+
+    def _create_solid_image(self, text="MecoBooks"):
+        """Creates a simple 1080x1920 image as fallback"""
+        img = Image.new('RGB', (VIDEO_W, VIDEO_H), color=(30, 30, 30))
+        # Optional: Add some noise or a simple shape so it's not pure black
+        return img
 
     def _create_portrait_image(self, pil_image):
         """Creates a 9:16 image with blurred background"""
@@ -172,9 +196,9 @@ class VideoProcessor:
                 output_path, 
                 codec="libx264", 
                 audio_codec="aac", 
-                threads=4, 
+                threads=1, # Reduce to 1 thread for memory stability on Render free tier
                 preset="ultrafast",
-                logger="bar" # Enable logging to stdout
+                logger="bar" 
             )
             
             # Cleanup Temps
