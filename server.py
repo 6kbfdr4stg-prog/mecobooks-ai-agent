@@ -411,46 +411,51 @@ async def get_report(filename: str):
 @app.post("/run-agent-sync/{agent_name}")
 async def run_agent_sync(agent_name: str):
     """
-    Runs an agent synchronously and returns the result/report.
+    Runs an agent synchronously (but non-blocking for the server) and returns the result/report.
     """
-    try:
-        result = None
-        
-        if agent_name == "content_creator":
-            from ai_agents.content_creator import ContentCreatorAgent
-            agent = ContentCreatorAgent()
-            result = agent.run()
+    import asyncio
+
+    def _run_agent_logic(name):
+        try:
+            result = None
+            if name == "content_creator":
+                from ai_agents.content_creator import ContentCreatorAgent
+                agent = ContentCreatorAgent()
+                result = agent.run()
+                
+            elif name == "inventory_analyst":
+                from ai_agents.inventory_analyst import InventoryAnalystAgent
+                agent = InventoryAnalystAgent()
+                result = agent.run()
+                
+            elif name == "market_research":
+                from ai_agents.market_research import MarketResearchAgent
+                agent = MarketResearchAgent()
+                result = agent.run()
+                
+            elif name == "integrity_manager":
+                from ai_agents.integrity_manager import IntegrityManagerAgent
+                agent = IntegrityManagerAgent()
+                report_path = agent.run()
+                # Read the report content
+                if os.path.exists(report_path):
+                    with open(report_path, "r", encoding="utf-8") as f:
+                        result = {"report_path": report_path, "content": f.read()}
+                else:
+                    result = {"report_path": report_path, "content": "Report file not found."}
             
-        elif agent_name == "inventory_analyst":
-            from ai_agents.inventory_analyst import InventoryAnalystAgent
-            agent = InventoryAnalystAgent()
-            result = agent.run()
-            
-        elif agent_name == "market_research":
-            from ai_agents.market_research import MarketResearchAgent
-            agent = MarketResearchAgent()
-            result = agent.run()
-            
-        elif agent_name == "integrity_manager":
-            from ai_agents.integrity_manager import IntegrityManagerAgent
-            agent = IntegrityManagerAgent()
-            report_path = agent.run()
-            # Read the report content
-            if os.path.exists(report_path):
-                with open(report_path, "r", encoding="utf-8") as f:
-                    result = {"report_path": report_path, "content": f.read()}
             else:
-                result = {"report_path": report_path, "content": "Report file not found."}
-        
-        else:
-             raise HTTPException(status_code=400, detail="Unknown agent")
+                 raise HTTPException(status_code=400, detail="Unknown agent")
 
-        return {"status": "success", "agent": agent_name, "output": result}
+            return {"status": "success", "agent": name, "output": result}
 
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return {"status": "error", "message": str(e)}
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"status": "error", "message": str(e)}
+
+    # Run the blocking code in a separate thread
+    return await asyncio.to_thread(_run_agent_logic, agent_name)
 
 @app.get("/verify", response_class=HTMLResponse)
 async def verification_dashboard():
