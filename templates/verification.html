@@ -142,13 +142,13 @@
             bottom: 0;
             background: rgba(0, 0, 0, 0.5);
             z-index: 50;
-            display: none;
+            display: none !important;
             align-items: center;
             justify-content: center;
         }
 
         .modal-overlay.active {
-            display: flex;
+            display: flex !important;
         }
 
         .badge {
@@ -349,7 +349,7 @@
                 const data = await response.json();
 
                 date.textContent = `Cập nhật: ${data.modified}`;
-                
+
                 if (!data.content || data.content.trim() === '') {
                     content.innerHTML = '<div class="text-center py-8 text-gray-500 flex flex-col items-center"><span class="text-4xl mb-2">📭</span><p>Báo cáo này chưa có nội dung.</p></div>';
                 } else {
