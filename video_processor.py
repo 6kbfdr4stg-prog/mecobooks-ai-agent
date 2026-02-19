@@ -5,6 +5,7 @@ from gtts import gTTS
 from PIL import Image, ImageFilter
 import requests
 from io import BytesIO
+import numpy as np
 
 # Configuration
 VIDEO_W, VIDEO_H = 1080, 1920

@@ -557,12 +557,12 @@
                     const color = colors[r.name] || 'gray';
                     return `
                         <div class="report-item bg-gray-50 border border-gray-100 rounded-lg p-4 flex items-center justify-between hover:bg-white hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group"
-                             onclick="viewReport('${r.filename}', '${r.name}')">
+                             onclick="viewReport('${r.id}', '${r.name}')">
                             <div class="flex items-center gap-4">
                                 <div class="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition-transform">${icon}</div>
                                 <div>
                                     <p class="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition-colors">${r.name}</p>
-                                    <p class="text-xs text-gray-400">Cập nhật: ${r.modified} • ${r.size_kb} KB</p>
+                                    <p class="text-xs text-gray-400">ID: ${r.id} • Cập nhật: ${r.modified} • ${r.size_kb} KB</p>
                                 </div>
                             </div>
                             <span class="text-gray-300 text-lg group-hover:text-blue-500 transition-colors">View →</span>
@@ -578,36 +578,104 @@
             }
         }
 
-        async function viewReport(filename, name) {
+        let currentReportId = null;
+
+        async function viewReport(reportId, name) {
             const modal = document.getElementById('report-modal');
             const title = document.getElementById('modal-title');
             const date = document.getElementById('modal-date');
             const content = document.getElementById('modal-content');
 
+            currentReportId = reportId;
             title.textContent = name;
             date.textContent = 'Đang tải dữ liệu...';
+            
+            // Clear existing video button if any (safety)
+            const oldBtn = document.getElementById('btn-gen-video');
+            if (oldBtn) oldBtn.remove();
+            
             content.innerHTML = '<div class="flex justify-center py-12"><span class="loader" style="width: 32px; height: 32px; border-width: 4px; border-color: #e5e7eb; border-top-color: #3b82f6;"></span></div>';
             modal.classList.add('active');
 
             try {
-                const response = await fetch(`/api/reports/${filename}`);
+                const response = await fetch(`/api/reports/${reportId}`);
                 const data = await response.json();
 
-                date.textContent = `File: ${filename} • Cập nhật: ${data.modified}`;
+                date.textContent = `ID: ${reportId} • Cập nhật: ${data.modified}`;
 
                 if (!data.content || data.content.trim() === '') {
                     content.innerHTML = '<div class="text-center py-12 text-gray-400 flex flex-col items-center"><span class="text-5xl mb-3 grayscale opacity-50">📄</span><p>Báo cáo này chưa có nội dung.</p></div>';
                 } else {
                     content.innerHTML = marked.parse(data.content);
+                    
+                    // Add Video Button if it's a Content Creator report
+                    if (name.toLowerCase().includes('content')) {
+                        const header = modal.querySelector('.border-b');
+                        const btn = document.createElement('button');
+                        btn.id = 'btn-gen-video';
+                        btn.className = 'ml-4 bg-purple-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-700 transition flex items-center gap-2';
+                        btn.innerHTML = '🎞️ Tạo Video TikTok/Reels';
+                        btn.onclick = () => generateVideo(reportId);
+                        header.insertBefore(btn, header.querySelector('button:last-child'));
+                    }
                 }
             } catch (error) {
                 content.innerHTML = `<div class="p-4 bg-red-50 text-red-600 rounded-lg">❌ Lỗi: ${error.message}</div>`;
             }
         }
 
+        async function generateVideo(reportId) {
+            const btn = document.getElementById('btn-gen-video');
+            if (!btn) return;
+            
+            if (!confirm('Bắt đầu tạo Video từ kịch bản này? Quá trình xử lý mất khoảng 30-60 giây.')) return;
+            
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            btn.innerHTML = '<span class="loader"></span> Đang tạo...';
+            
+            try {
+                const response = await fetch(`/api/generate-video/${reportId}`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    btn.innerHTML = '✅ Video Xong!';
+                    btn.classList.remove('bg-purple-600');
+                    btn.classList.add('bg-green-600');
+                    
+                    // Show link in modal
+                    const videoDiv = document.createElement('div');
+                    videoDiv.className = 'mt-6 p-4 bg-green-50 border border-green-200 rounded-xl flex flex-col items-center gap-3';
+                    videoDiv.innerHTML = `
+                        <p class="text-green-800 font-bold text-sm">🎉 Video đã được tạo và gửi qua Telegram!</p>
+                        <video controls class="w-full max-w-sm rounded-lg shadow-lg">
+                            <source src="${data.video_url}" type="video/mp4">
+                        </video>
+                        <a href="${data.video_url}" target="_blank" class="text-blue-600 underline text-xs">Mở video trong tab mới</a>
+                    `;
+                    document.getElementById('modal-content').prepend(videoDiv);
+                    
+                } else {
+                    alert('Lỗi: ' + data.message);
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.innerHTML = originalHtml;
+                }
+            } catch (error) {
+                alert('Connection Error: ' + error.message);
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.innerHTML = originalHtml;
+            }
+        }
+
         function closeModal(e) {
             if (e.target === e.currentTarget) {
                 document.getElementById('report-modal').classList.remove('active');
+                // Cleanup video button
+                const btn = document.getElementById('btn-gen-video');
+                if (btn) btn.remove();
             }
         }
 

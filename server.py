@@ -561,6 +561,85 @@ async def run_agent_sync(agent_name: str, username: str = Depends(get_current_us
 
     return {"status": "success", "agent": agent_name, "output": content}
 
+@app.post("/api/generate-video/{report_id}")
+async def generate_video_api(report_id: int, username: str = Depends(get_current_username)):
+    """
+    Experimental endpoint to generate a video from a stored marketing report.
+    """
+    import asyncio
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT content FROM reports WHERE id = ?", (report_id,))
+    row = c.fetchone()
+    conn.close()
+    
+    if not row:
+        raise HTTPException(status_code=404, detail="Report not found")
+        
+    content = row[0]
+    
+    # Simple Parsing Logic
+    import re
+    title_match = re.search(r"Marketing Content: (.*)\n", content)
+    script_match = re.search(r"### 🎬 Video Script \(Shorts/Reels\)\n\n([\s\S]*?)\n\n", content)
+    
+    if not title_match or not script_match:
+        # Fallback if specific headers not found
+        title = "Marketing Video"
+        script = content[:500] # Use snippet as fallback
+    else:
+        title = title_match.group(1).strip()
+        script = script_match.group(1).strip()
+    
+    # Cleanup script: Remove line references like (00:00 - 00:05)
+    script_clean = re.sub(r"\(\d{2}:\d{2} - \d{2}:\d{2}\)", "", script).strip()
+    
+    # Fetch Product Image URL from WooCommerce (Search by title)
+    from woocommerce_client import WooCommerceClient
+    woo = WooCommerceClient()
+    products = woo.search_products(title, limit=1)
+    
+    image_url = "https://placehold.co/1080x1920?text=MecoBooks+AI"
+    if products:
+        image_url = products[0]['image']
+    
+    # Run Video Generation
+    try:
+        from video_processor import VideoProcessor
+        vp = VideoProcessor()
+        
+        video_data = {
+            "title": title,
+            "script": script_clean,
+            "image_url": image_url,
+            "id": str(report_id)
+        }
+        
+        # Run in thread to avoid blocking FastAPI
+        output_path = await asyncio.to_thread(vp.generate_video, video_data)
+        
+        if output_path and os.path.exists(output_path):
+            # Dynamic URL based on host
+            video_url = f"/static/videos/{os.path.basename(output_path)}"
+            
+            # Notify via Telegram
+            try:
+                from ai_agents.telegram_client import send_telegram_message
+                message = f"🎬 <b>Video Đã Sẵn Sàng!</b>\n\nNội dung: {title}\n\n<a href='https://mecobooks-ai-agent.onrender.com{video_url}'>Xem và Tải Video</a>"
+                send_telegram_message(message)
+            except Exception as te:
+                print(f"Telegram Video Error: {te}")
+                
+            return {"status": "success", "video_url": video_url}
+        else:
+            return {"status": "error", "message": "Video generation failed"}
+            
+    except Exception as e:
+        print(f"Video API Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}
+
 @app.get("/verify", response_class=HTMLResponse)
 async def verification_dashboard(username: str = Depends(get_current_username)):
     """
