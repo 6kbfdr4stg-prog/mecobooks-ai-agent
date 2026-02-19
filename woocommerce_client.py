@@ -418,3 +418,53 @@ class WooCommerceClient:
         except Exception as e:
             print(f"WooCommerce Status Error: {e}")
             return []
+
+    def get_all_inventory(self, limit=100):
+        """
+        Fetch all products with stock information.
+        """
+        if not self.wcapi: return []
+        try:
+            products = self.wcapi.get("products", params={"per_page": limit, "status": "publish"}).json()
+            inventory = []
+            if isinstance(products, list):
+                for p in products:
+                    inventory.append({
+                        "id": p['id'],
+                        "name": p['name'],
+                        "sku": p.get('sku'),
+                        "stock_quantity": p.get('stock_quantity', 0),
+                        "stock_status": p.get('stock_status'),
+                        "manage_stock": p.get('manage_stock', False),
+                        "total_sales": p.get('total_sales', 0)
+                    })
+            return inventory
+        except Exception as e:
+            print(f"WooCommerce Get Inventory Error: {e}")
+            return []
+
+    def update_stock_by_sku(self, sku, quantity):
+        """
+        Updates stock quantity for a product by its SKU.
+        """
+        if not self.wcapi or not sku: return False
+        try:
+            # 1. Find product ID by SKU
+            products = self.wcapi.get("products", params={"sku": sku}).json()
+            if not isinstance(products, list) or len(products) == 0:
+                print(f"⚠️ SKU {sku} not found in WooCommerce")
+                return False
+            
+            product_id = products[0]['id']
+            
+            # 2. Update stock
+            data = {
+                "stock_quantity": quantity,
+                "manage_stock": True,
+                "stock_status": "instock" if quantity > 0 else "outofstock"
+            }
+            response = self.wcapi.put(f"products/{product_id}", data).json()
+            return 'id' in response
+        except Exception as e:
+            print(f"WooCommerce Update Stock Error: {e}")
+            return False

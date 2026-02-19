@@ -18,13 +18,14 @@ class HaravanClient:
         params = {
             "limit": limit,
             "page": page,
-            "fields": "id,title,body_html,images,variants"
+            "fields": "id,title,body_html,images,variants,sku"
         }
         
         try:
             response = requests.get(endpoint, headers=self.headers, params=params)
             response.raise_for_status()
-            return response.json().get('products', [])
+            products = response.json().get('products', [])
+            return [self.extract_product_data(p) for p in products]
         except requests.exceptions.RequestException as e:
             print(f"Error fetching products: {e}")
             return []
@@ -42,6 +43,8 @@ class HaravanClient:
             variant = product['variants'][0]
             price = variant.get('price', 0)
             variant_id = variant.get('id')
+            sku = variant.get('sku')
+            inventory_qty = variant.get('inventory_quantity', 0)
             
         # Clean description (simple strip for now, might need HTML parsing later)
         description = product.get('body_html', '')
@@ -53,6 +56,8 @@ class HaravanClient:
             "description": description,
             "price": price,
             "variant_id": variant_id,
+            "sku": sku,
+            "inventory_quantity": inventory_qty,
             "handle": product.get('handle'),
             "images": images
         }

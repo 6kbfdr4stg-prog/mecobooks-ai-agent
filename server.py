@@ -140,7 +140,7 @@ async def run_agent_endpoint(data: dict = Body(...)):
     """
     agent_name = data.get("agent")
     
-    if agent_name in ["content_creator", "inventory_analyst", "strategic_analyst", "integrity_manager", "market_research"]:
+    if agent_name in ["content_creator", "inventory_analyst", "strategic_analyst", "integrity_manager", "market_research", "inventory_ops"]:
         # Dynamic class loading is risky, stick to explicit map or simple if-else for safety
         if agent_name == "content_creator":
             from ai_agents.content_creator import ContentCreatorAgent
@@ -154,6 +154,9 @@ async def run_agent_endpoint(data: dict = Body(...)):
         elif agent_name == "integrity_manager":
             from ai_agents.integrity_manager import IntegrityManagerAgent
             agent = IntegrityManagerAgent()
+        elif agent_name == "inventory_ops":
+            from ai_agents.inventory_ops import InventoryOpsAgent
+            agent = InventoryOpsAgent()
         elif agent_name == "market_research":
             from ai_agents.market_research import MarketResearchAgent
             agent = MarketResearchAgent()
@@ -660,6 +663,19 @@ async def verification_dashboard(username: str = Depends(get_current_username)):
             return f.read()
     except FileNotFoundError:
         return "<h1>Verification Dashboard Not Found</h1>"
+
+@app.post("/api/run-inventory-sync")
+async def run_inventory_sync(background_tasks: BackgroundTasks, username: str = Depends(get_current_username)):
+    """
+    Triggers the Inventory Ops Agent in background.
+    """
+    try:
+        from ai_agents.inventory_ops import InventoryOpsAgent
+        agent = InventoryOpsAgent()
+        background_tasks.add_task(agent.run)
+        return {"status": "success", "message": "Tiến trình đồng bộ kho hàng đã bắt đầu chạy ngầm. Kết quả sẽ được gửi qua Telegram và lưu vào báo cáo."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))

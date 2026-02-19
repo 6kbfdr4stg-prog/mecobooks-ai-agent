@@ -10,7 +10,8 @@ temp_images/
 chatbot_deploy.zip
 deploy_fix.sh
 
-# Local pips
-psutil/
-*.dist-info/
-*.whl
+# Local storage
+app.db
+reports/
+debug_skus.py
+static/videos/
