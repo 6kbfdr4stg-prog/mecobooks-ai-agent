@@ -424,8 +424,10 @@ class WooCommerceClient:
         Fetch all products with stock information.
         """
         if not self.wcapi: return []
+        # WooCommerce per_page max is 100
+        safe_limit = min(limit, 100)
         try:
-            products = self.wcapi.get("products", params={"per_page": limit, "status": "publish"}).json()
+            products = self.wcapi.get("products", params={"per_page": safe_limit, "status": "publish"}).json()
             inventory = []
             if isinstance(products, list):
                 for p in products:

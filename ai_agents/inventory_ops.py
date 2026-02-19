@@ -39,10 +39,12 @@ class InventoryOpsAgent:
                     "name": v['title'],
                     "qty": v.get('inventory_quantity', 0)
                 }
+        self.logger.info(f"✅ Fetched {len(h_inventory)} variants from Haravan.")
         
-        # 2. Fetch WooCommerce Data
-        w_inventory_list = self.woo.get_all_inventory(limit=150)
+        # 2. Fetch WooCommerce Data (Cap at 100 for safety)
+        w_inventory_list = self.woo.get_all_inventory(limit=100)
         w_inventory = {item['sku']: item for item in w_inventory_list if item.get('sku')}
+        self.logger.info(f"✅ Fetched {len(w_inventory)} products from WooCommerce.")
         
         results = {
             "synced": [],
