@@ -405,8 +405,13 @@ class PricingStrategyAgent:
             for p in products:
                 tags = [t.strip() for t in p.get('tags', '').split(',')]
                 if 'mecobooks-tier-2' in tags:
-                    # Get price from first variant
-                    price = float(p.get('variants', [{}])[0].get('price', 0))
+                    # Check inventory (Phase 7.6)
+                    variant = p.get('variants', [{}])[0]
+                    inventory = variant.get('inventory_quantity', 0)
+                    if inventory <= 0:
+                        continue
+
+                    price = float(variant.get('price', 0))
                     tier2_items.append({
                         'id': p.get('id'),
                         'title': p.get('title'),
@@ -416,7 +421,14 @@ class PricingStrategyAgent:
                         'image': p.get('images', [{}])[0].get('src', '') if p.get('images') else ''
                     })
 
-            # Group by category
+            # Group by Vendor (Author)
+            by_vendor = {}
+            for item in tier2_items:
+                v = item['vendor']
+                if v not in by_vendor: by_vendor[v] = []
+                by_vendor[v].append(item)
+
+            # Group by Category (Topic)
             by_cat = {}
             for item in tier2_items:
                 cat = item['category']
@@ -424,21 +436,60 @@ class PricingStrategyAgent:
                 by_cat[cat].append(item)
 
             suggestions = []
+            seen_ids = set()
+
+            # 1. Prioritize Vendor Bundles (Author Sets) - Size 2 to 4
+            for vendor, items in by_vendor.items():
+                if vendor == "Unknown": continue
+                # Filter out items already in a suggestion
+                available = [i for i in items if i['id'] not in seen_ids]
+                
+                while len(available) >= 2:
+                    # Limit size to 20 items (Phase 7.8)
+                    size = min(len(available), 20)
+                    group = available[:size]
+                    total_price = sum(it['price'] for it in group)
+                    
+                    # N items = N% discount (Phase 7.8)
+                    discount = size 
+                    bundle_price = round((total_price * (1 - discount/100)) / 1000) * 1000
+                    
+                    suggestions.append({
+                        'type': 'author',
+                        'label': f"Bộ sưu tập {vendor} (Giảm {discount}%)",
+                        'items_count': size,
+                        'items': group,
+                        'original_price': int(total_price),
+                        'suggested_price': int(bundle_price),
+                        'discount_pct': discount
+                    })
+                    for it in group: seen_ids.add(it['id'])
+                    available = available[size:]
+
+            # 2. Topic Bundles (Category) for remaining items - Size 2 to 20
             for cat, items in by_cat.items():
-                if len(items) >= 2:
-                    # Suggest bundles in sets of 3 or 5
-                    total_price = sum(i['price'] for i in items[:3])
-                    bundle_price = round((total_price * 0.8) / 1000) * 1000 # 20% bundle discount
+                available = [i for i in items if i['id'] not in seen_ids]
+                
+                while len(available) >= 2:
+                    size = min(len(available), 20)
+                    group = available[:size]
+                    total_price = sum(it['price'] for it in group)
+                    
+                    # N items = N% discount (Phase 7.8)
+                    discount = size
+                    bundle_price = round((total_price * (1 - discount/100)) / 1000) * 1000
                     
                     suggestions.append({
                         'type': 'category',
-                        'label': f"Combo Sách {cat}",
-                        'items_count': min(3, len(items)),
-                        'items': items[:3],
+                        'label': f"Combo {cat} Tuyển Chọn (Giảm {discount}%)",
+                        'items_count': size,
+                        'items': group,
                         'original_price': int(total_price),
                         'suggested_price': int(bundle_price),
-                        'discount_pct': 20
+                        'discount_pct': discount
                     })
+                    for it in group: seen_ids.add(it['id'])
+                    available = available[size:]
             
             return suggestions
         except Exception as e:
@@ -529,12 +580,14 @@ class PricingStrategyAgent:
                 resized_imgs.append(img.resize((new_w, std_h), Image.Resampling.LANCZOS))
                 total_w += new_w
 
-            # Create canvas
-            collage = Image.new('RGB', (total_w, std_h), (255, 255, 255))
+            # Create canvas with 20px gutter between images
+            gutter = 20
+            canvas_w = total_w + (gutter * (len(resized_imgs) - 1))
+            collage = Image.new('RGB', (canvas_w, std_h), (255, 255, 255))
             cur_x = 0
             for img in resized_imgs:
                 collage.paste(img, (cur_x, 0))
-                cur_x += img.width
+                cur_x += img.width + gutter
             
             # Save to buffer
             buf = io.BytesIO()
