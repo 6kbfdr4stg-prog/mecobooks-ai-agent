@@ -333,6 +333,86 @@
                             </div>
                         </div>
 
+                        <!-- Pricing Strategy Section (Phase 6) -->
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
+                            <h2 class="text-lg font-bold text-gray-800 mb-1 flex items-center gap-2">
+                                💰 Chiến lược định giá thông minh (2 Tầng)
+                            </h2>
+                            <p class="text-xs text-gray-400 mb-5">Tầng 1: Giá tối ưu 30 ngày đầu &nbsp;|&nbsp; Tầng 2:
+                                Giá thoát hàng nếu chưa bán được</p>
+                            <div class="flex flex-col md:flex-row gap-4 mb-5">
+                                <input type="text" id="pricing-input"
+                                    class="flex-1 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    placeholder="Nhập tên sách (VD: Nhà giả kim, Đắc nhân tâm...)">
+                                <button onclick="calcPricing()" id="btn-calc-pricing"
+                                    class="bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 font-semibold transition-all shadow-sm flex items-center justify-center gap-2">
+                                    <span>🧮</span> Tính giá
+                                </button>
+                            </div>
+
+                            <!-- Pricing Result Cards (hidden by default) -->
+                            <div id="pricing-result" class="hidden">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <!-- Tier 1 -->
+                                    <div class="border-2 border-indigo-200 bg-indigo-50 rounded-xl p-5">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <span
+                                                class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Tầng
+                                                1 · 30 Ngày đầu</span>
+                                            <span class="text-xs text-indigo-400" id="pricing-tier1-ratio"></span>
+                                        </div>
+                                        <div class="text-3xl font-extrabold text-indigo-700 my-2"
+                                            id="pricing-tier1-price">---</div>
+                                        <div class="text-sm text-indigo-600" id="pricing-tier1-label">Giá Cạnh Tranh
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-2" id="pricing-tier1-strategy"></div>
+                                    </div>
+                                    <!-- Tier 2 -->
+                                    <div class="border-2 border-orange-200 bg-orange-50 rounded-xl p-5">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <span
+                                                class="text-xs font-bold text-orange-600 uppercase tracking-wider">Tầng
+                                                2 · Thoát kho</span>
+                                            <span class="text-xs text-orange-400" id="pricing-tier2-ratio"></span>
+                                        </div>
+                                        <div class="text-3xl font-extrabold text-orange-600 my-2"
+                                            id="pricing-tier2-price">---</div>
+                                        <div class="text-sm text-orange-600" id="pricing-tier2-label">Giá Thanh Lý</div>
+                                        <div class="text-xs text-gray-500 mt-2">Áp dụng sau 30 ngày nếu chưa bán được
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50 rounded-xl p-4 text-sm text-gray-600 border border-gray-100"
+                                    id="pricing-recommendation"></div>
+                                <div class="mt-4 flex gap-3">
+                                    <button onclick="applyMarkdowns(true)"
+                                        class="flex-1 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-100 transition-all">
+                                        🔍 Xem trước hàng cần giảm giá
+                                    </button>
+                                    <button onclick="applyMarkdowns(false)"
+                                        class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 transition-all font-semibold">
+                                        ⚡ Áp dụng giảm giá Tầng 2 ngay
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Markdown Result -->
+                            <div id="markdown-result"
+                                class="hidden mt-4 p-4 bg-gray-50 rounded-xl border border-gray-100 text-sm max-h-64 overflow-y-auto">
+                            </div>
+
+                            <div id="pricing-empty" class="py-10 text-center text-gray-400">
+                                <div class="text-4xl mb-2 opacity-30">💰</div>
+                                <p>Nhập tên sách để nhận gợi ý giá chiến lược 2 tầng.</p>
+                            </div>
+                            <div id="pricing-loading" class="hidden py-10 text-center">
+                                <div
+                                    class="inline-block animate-spin rounded-full h-7 w-7 border-4 border-indigo-100 border-t-indigo-600 mb-3">
+                                </div>
+                                <p class="text-gray-500">Đang tìm giá thị trường và tính toán...</p>
+                            </div>
+                        </div>
+
                         <!-- Price Scout Section (Phase 5) -->
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
                             <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -919,6 +999,98 @@
                 gBtn.innerHTML = originalGText;
             }
         }
+
+        // --- 6. Pricing Strategy Logic (Phase 6) ---
+        async function calcPricing() {
+            const input = document.getElementById('pricing-input');
+            const btn = document.getElementById('btn-calc-pricing');
+            const resultDiv = document.getElementById('pricing-result');
+            const emptyDiv = document.getElementById('pricing-empty');
+            const loadingDiv = document.getElementById('pricing-loading');
+            const markdownResult = document.getElementById('markdown-result');
+
+            const query = input.value.trim();
+            if (!query) { alert("Vui lòng nhập tên sách!"); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="animate-spin">🌀</span> Đang tính...';
+            emptyDiv.classList.add('hidden');
+            loadingDiv.classList.remove('hidden');
+            resultDiv.classList.add('hidden');
+            markdownResult.classList.add('hidden');
+
+            try {
+                const response = await fetch(`/api/price-strategy/suggest?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                if (data.error || !data.tier1) {
+                    loadingDiv.classList.add('hidden');
+                    emptyDiv.classList.remove('hidden');
+                    emptyDiv.innerHTML = `<div class="text-4xl mb-2 opacity-30">🔍</div><p class="text-red-400">${data.error || 'Không tìm thấy dữ liệu giá.'}</p>`;
+                    return;
+                }
+
+                const fmt = v => new Intl.NumberFormat('vi-VN').format(v) + ' ₫';
+
+                document.getElementById('pricing-tier1-price').textContent = fmt(data.tier1.price);
+                document.getElementById('pricing-tier1-ratio').textContent = `${data.tier1.ratio_pct}% giá mới`;
+                document.getElementById('pricing-tier1-label').textContent = data.tier1.label;
+                document.getElementById('pricing-tier1-strategy').textContent = `Giá thị trường: ${fmt(data.market_price)}`;
+
+                document.getElementById('pricing-tier2-price').textContent = fmt(data.tier2.price);
+                document.getElementById('pricing-tier2-ratio').textContent = `${data.tier2.ratio_pct}% giá mới`;
+                document.getElementById('pricing-tier2-label').textContent = data.tier2.label;
+
+                document.getElementById('pricing-recommendation').innerHTML = `💡 <strong>Gợi ý:</strong> ${data.recommendation}`;
+
+                loadingDiv.classList.add('hidden');
+                resultDiv.classList.remove('hidden');
+            } catch (err) {
+                console.error(err);
+                emptyDiv.classList.remove('hidden');
+                emptyDiv.innerHTML = `<p class="text-red-400">Lỗi: ${err.message}</p>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>🧮</span> Tính giá';
+                loadingDiv.classList.add('hidden');
+            }
+        }
+
+        async function applyMarkdowns(dryRun) {
+            const markdownResult = document.getElementById('markdown-result');
+            markdownResult.innerHTML = '<p class="text-gray-400 text-center py-4">⏳ Đang quét kho hàng...</p>';
+            markdownResult.classList.remove('hidden');
+
+            try {
+                const response = await fetch(`/api/price-strategy/apply-markdowns?dry_run=${dryRun}`, { method: 'POST' });
+                const data = await response.json();
+
+                if (data.total_stale === 0) {
+                    markdownResult.innerHTML = '<p class="text-green-600 text-center py-4">✅ Không có sản phẩm nào tồn kho quá 30 ngày!</p>';
+                    return;
+                }
+
+                const action = dryRun ? 'Xem trước' : 'Đã giảm giá';
+                const items = data.markdowns.map(item =>
+                    `<div class="flex justify-between py-2 border-b border-gray-100">
+                        <span class="text-gray-700">${item.title.substring(0, 50)}</span>
+                        <span class="text-orange-600 font-medium">${new Intl.NumberFormat('vi-VN').format(item.old_price)}đ → ${new Intl.NumberFormat('vi-VN').format(item.new_price)}đ</span>
+                    </div>`
+                ).join('');
+
+                markdownResult.innerHTML = `
+                    <div class="font-semibold text-gray-700 mb-2">${action}: ${data.total_marked_down}/${data.total_stale} sản phẩm tồn kho > 30 ngày</div>
+                    ${items}
+                    ${!dryRun ? '<p class="text-green-600 mt-3 font-medium">✅ Đã cập nhật giá trên Haravan & gửi báo cáo Telegram!</p>' : '<p class="text-orange-500 mt-3">👆 Nhấn \'Áp dụng\' để thực sự thay đổi giá.</p>'}
+                `;
+            } catch (err) {
+                markdownResult.innerHTML = `<p class="text-red-400">Lỗi: ${err.message}</p>`;
+            }
+        }
+
+        document.getElementById('pricing-input')?.addEventListener('keypress', e => {
+            if (e.key === 'Enter') calcPricing();
+        });
 
         // --- 5. Price Scout Logic (Phase 5) ---
         async function scoutPrice() {

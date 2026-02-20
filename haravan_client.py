@@ -393,6 +393,50 @@ class HaravanClient:
                 print(f"Response: {e.response.text}")
             return None
 
+    def update_variant_price(self, variant_id: int, new_price: str) -> bool:
+        """
+        Update the price of a specific product variant on Haravan.
+        Returns True on success, False on failure.
+        """
+        endpoint = f"{self.shop_url}/admin/variants/{variant_id}.json"
+        payload = {"variant": {"id": variant_id, "price": new_price}}
+        try:
+            response = requests.put(endpoint, headers=self.headers, json=payload)
+            response.raise_for_status()
+            return True
+        except requests.exceptions.RequestException as e:
+            print(f"Error updating variant {variant_id} price: {e}")
+            return False
+
+    def get_products_all(self):
+        """
+        Fetch all RAW products (not expanded to variants) for stale inventory scan.
+        Returns a list of raw product dicts.
+        """
+        all_products = []
+        page = 1
+        while True:
+            endpoint = f"{self.shop_url}/admin/products.json"
+            params = {
+                "limit": 250,
+                "page": page,
+                "fields": "id,title,variants,published_at"
+            }
+            try:
+                response = requests.get(endpoint, headers=self.headers, params=params)
+                response.raise_for_status()
+                products = response.json().get('products', [])
+                if not products:
+                    break
+                all_products.extend(products)
+                page += 1
+                if page > 200:
+                    break
+            except requests.exceptions.RequestException as e:
+                print(f"Error fetching products page {page}: {e}")
+                break
+        return all_products
+
 if __name__ == "__main__":
     # Test the client
     client = HaravanClient()

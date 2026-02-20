@@ -715,19 +715,40 @@ async def generate_video_api(report_id: int, username: str = Depends(get_current
 
 @app.get("/api/compare-price")
 async def compare_price(q: str, username: str = Depends(get_current_username)):
-    """
-    Scouts multiple platforms for book prices.
-    """
+    """Scouts multiple platforms for book prices."""
     if not q:
         return {"results": []}
-    
     def run_scout():
         from ai_agents.price_scout import PriceScoutAgent
-        agent = PriceScoutAgent()
-        return agent.compare(q)
-    
+        scout = PriceScoutAgent()
+        return scout.compare(q)
     results = await asyncio.to_thread(run_scout)
     return {"query": q, "results": results}
+
+@app.get("/api/price-strategy/suggest")
+async def price_strategy_suggest(q: str, username: str = Depends(get_current_username)):
+    """Returns a Tier-1 and Tier-2 pricing suggestion for a given book title."""
+    if not q:
+        return {"error": "Missing book title."}
+    def run_suggest():
+        from ai_agents.pricing_strategy import PricingStrategyAgent
+        agent = PricingStrategyAgent()
+        return agent.suggest_prices(q)
+    result = await asyncio.to_thread(run_suggest)
+    return result
+
+@app.post("/api/price-strategy/apply-markdowns")
+async def apply_price_markdowns(dry_run: bool = True, username: str = Depends(get_current_username)):
+    """
+    Scans inventory for products unsold > 30 days and applies Tier-2 pricing.
+    Set dry_run=False to commit changes to Haravan.
+    """
+    def run_markdown():
+        from ai_agents.pricing_strategy import PricingStrategyAgent
+        agent = PricingStrategyAgent()
+        return agent.apply_markdown(dry_run=dry_run)
+    result = await asyncio.to_thread(run_markdown)
+    return result
 
 @app.get("/verify", response_class=HTMLResponse)
 async def verification_dashboard(username: str = Depends(get_current_username)):

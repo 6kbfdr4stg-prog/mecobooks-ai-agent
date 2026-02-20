@@ -14,6 +14,7 @@ from ai_agents.strategic_analyst import StrategicAnalystAgent
 from ai_agents.integrity_manager import IntegrityManagerAgent
 from ai_agents.market_research import MarketResearchAgent
 from ai_agents.bi_analyst import BIAnalystAgent
+from ai_agents.pricing_strategy import PricingStrategyAgent
 
 def job_daily_bi_report():
     print("⏰ [Scheduler] Running Daily Executive BI Report...")
@@ -93,6 +94,15 @@ def job_market_research():
     except Exception as e:
         print(f"❌ Market Research Failed: {e}")
 
+def job_apply_markdowns():
+    print("⏰ [Scheduler] Running Weekly Tier-2 Markdown Check...")
+    try:
+        agent = PricingStrategyAgent()
+        result = agent.apply_markdown(dry_run=False)
+        print(f"✅ Markdown Done: {result['total_marked_down']} products updated.")
+    except Exception as e:
+        print(f"❌ Markdown Job Failed: {e}")
+
 # Define Schedule
 # Production Schedule (Hanoi Time GMT+7 -> UTC)
 schedule.every().day.at("04:00").do(job_create_content) # 11:00 AM VN
@@ -105,6 +115,7 @@ schedule.every().sunday.at("14:00").do(job_strategic_analysis) # 21:00 PM VN Sun
 schedule.every(3).days.at("02:00").do(job_market_research) # 09:00 AM VN every 3 days
 schedule.every().day.at("01:00").do(job_daily_bi_report) # 08:00 AM VN
 schedule.every().hour.do(job_integrity_check) # Self-healing check every hour
+schedule.every().tuesday.at("01:00").do(job_apply_markdowns) # 08:00 AM VN Tuesday - Tier-2 markdowns
 
 # Demo Schedule (Run immediately for first loop then every 10 mins?)
 # schedule.every(10).minutes.do(job_create_content)
