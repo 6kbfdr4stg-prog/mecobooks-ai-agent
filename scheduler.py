@@ -127,8 +127,8 @@ schedule.every().day.at("13:00").do(job_create_content) # 20:00 PM VN
 
 schedule.every().day.at("03:00").do(job_email_marketing) # 10:00 AM VN
 
-schedule.every().monday.at("01:00").do(job_analyze_inventory) # 08:00 AM VN
-schedule.every().monday.at("02:00").do(job_auto_bundling) # 09:00 AM VN Monday (Phase 8)
+schedule.every().day.at("01:00").do(job_auto_bundling) # 08:00 AM VN Daily (Phase 8.1)
+schedule.every().monday.at("01:30").do(job_analyze_inventory) # 08:30 AM VN Monday
 schedule.every().sunday.at("14:00").do(job_strategic_analysis) # 21:00 PM VN Sunday prep for week
 schedule.every(3).days.at("02:00").do(job_market_research) # 09:00 AM VN every 3 days
 schedule.every().day.at("01:00").do(job_daily_bi_report) # 08:00 AM VN
