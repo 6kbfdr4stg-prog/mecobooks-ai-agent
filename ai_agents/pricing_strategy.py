@@ -1,6 +1,7 @@
 import logging
 import sys
 import os
+import sqlite3
 from datetime import datetime, timedelta
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib"))
@@ -26,6 +27,40 @@ class PricingStrategyAgent:
     def __init__(self):
         from haravan_client import HaravanClient
         self.hrv = HaravanClient()
+        self.db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pricing_history.db")
+        self._init_history_db()
+
+    def _init_history_db(self):
+        """Create the pricing_history table if it doesn't exist."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS pricing_history (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    product_id  TEXT    NOT NULL,
+                    title       TEXT    NOT NULL,
+                    from_tier   INTEGER,
+                    to_tier     INTEGER NOT NULL,
+                    old_price   INTEGER,
+                    new_price   INTEGER,
+                    transitioned_at TEXT NOT NULL
+                )
+            """)
+            conn.commit()
+
+    def _log_tier_transition(self, product_id, title, from_tier, to_tier, old_price, new_price):
+        """Record a tier change in the local pricing_history SQLite database."""
+        try:
+            now = get_now_hanoi().strftime("%Y-%m-%d %H:%M:%S")
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "INSERT INTO pricing_history (product_id, title, from_tier, to_tier, old_price, new_price, transitioned_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (str(product_id), title, from_tier, to_tier, old_price, new_price, now)
+                )
+                conn.commit()
+            logger.info(f"  📝 History logged: {title} Tier{from_tier}→Tier{to_tier}")
+        except Exception as e:
+            logger.error(f"Failed to log tier transition for {title}: {e}")
 
     def _get_market_price(self, book_title: str) -> float:
         """Fetch the median market price (new books) from Price Scout."""
@@ -196,46 +231,48 @@ class PricingStrategyAgent:
     def find_stale_inventory(self, days: int = None) -> list:
         """
         Find products listed on Haravan but with no orders in the past `days` days.
-        Returns list of products that should move to Tier 2 pricing.
+        Skips products already tagged mecobooks-tier-2 (already marked down).
         """
         days = days or self.TIER1_DAYS
         logger.info(f"Scanning for stale inventory (no orders in {days} days)...")
 
         try:
-            # Get all products
             products = self.hrv.get_products_all()
 
-            # Get recent orders to find sold SKUs
             cutoff_date = (get_now_hanoi() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
             recent_orders = self.hrv.get_orders(created_at_min=cutoff_date, status="any", limit=250)
 
-            # Build set of recently sold product IDs
             sold_ids = set()
             for order in recent_orders:
                 for item in order.get('line_items', []):
                     sold_ids.add(str(item.get('product_id', '')))
 
-            # Identify stale products (in stock but not recently sold)
             stale = []
             for product in products:
                 pid = str(product.get('id', ''))
-                # Check if any variant has stock
+                # Skip products already at Tier 2
+                tags = [t.strip() for t in product.get('tags', '').split(',')]
+                if 'mecobooks-tier-2' in tags:
+                    logger.debug(f"Skipping already-Tier2: {product.get('title', pid)}")
+                    continue
+
                 has_stock = any(
                     v.get('inventory_quantity', 0) > 0
                     for v in product.get('variants', [])
                 )
                 if has_stock and pid not in sold_ids:
-                    # Get current price from first variant
                     variants = product.get('variants', [])
                     current_price = float(variants[0].get('price', 0)) if variants else 0
+                    current_tier = 2 if 'mecobooks-tier-2' in tags else (1 if 'mecobooks-tier-1' in tags else None)
                     stale.append({
                         'id': pid,
                         'title': product.get('title', ''),
                         'current_price': int(current_price),
+                        'current_tier': current_tier,
                         'variants': variants,
                     })
 
-            logger.info(f"Found {len(stale)} stale products (unsold > {days} days).")
+            logger.info(f"Found {len(stale)} stale Tier-1 products (unsold > {days} days).")
             return stale
 
         except Exception as e:
@@ -245,6 +282,7 @@ class PricingStrategyAgent:
     def apply_markdown(self, dry_run: bool = False) -> dict:
         """
         Find stale Tier-1 products and reduce their price to Tier-2 level.
+        Also tags the product on Haravan and logs the transition to SQLite.
         If dry_run=True, only reports what WOULD be changed (no actual API calls).
         """
         logger.info(f"Applying Tier-2 markdowns (dry_run={dry_run})...")
@@ -258,13 +296,12 @@ class PricingStrategyAgent:
             if current_price <= 0:
                 continue
 
-            # Multiply back to get implied market price (based on tier1 ratio), then apply tier2
-            # Simplified: we just apply TIER2/TIER1 ratio to current price
             new_price = round((current_price * self.TIER2_RATIO / self.TIER1_RATIO) / 1000) * 1000
             new_price = max(new_price, 5000)  # Safety floor: min 5,000 VND
 
             if dry_run:
                 applied.append({
+                    'id': product['id'],
                     'title': product['title'],
                     'old_price': current_price,
                     'new_price': int(new_price),
@@ -272,14 +309,29 @@ class PricingStrategyAgent:
                 })
             else:
                 try:
-                    # Update each variant's price via Haravan API
+                    # Update each variant's price
                     for variant in product.get('variants', []):
                         if variant.get('inventory_quantity', 0) > 0:
                             self.hrv.update_variant_price(
                                 variant_id=variant['id'],
                                 new_price=str(int(new_price))
                             )
+
+                    # Tag product as Tier 2 on Haravan
+                    self.hrv.tag_product_tier(int(product['id']), tier=2)
+
+                    # Log the transition to pricing_history
+                    self._log_tier_transition(
+                        product_id=product['id'],
+                        title=product['title'],
+                        from_tier=product.get('current_tier', 1),
+                        to_tier=2,
+                        old_price=current_price,
+                        new_price=int(new_price)
+                    )
+
                     applied.append({
+                        'id': product['id'],
                         'title': product['title'],
                         'old_price': current_price,
                         'new_price': int(new_price),

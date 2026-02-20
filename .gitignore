@@ -12,6 +12,7 @@ deploy_fix.sh
 
 # Local storage
 app.db
+pricing_history.db
 reports/
 debug_skus.py
 static/videos/

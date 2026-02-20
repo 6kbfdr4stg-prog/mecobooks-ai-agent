@@ -750,6 +750,24 @@ async def apply_price_markdowns(dry_run: bool = True, username: str = Depends(ge
     result = await asyncio.to_thread(run_markdown)
     return result
 
+@app.get("/api/price-strategy/history")
+async def price_strategy_history(limit: int = 50, username: str = Depends(get_current_username)):
+    """Returns the history of all pricing tier transitions from the local SQLite DB."""
+    import sqlite3, os
+    db_path = os.path.join(os.path.dirname(__file__), "pricing_history.db")
+    if not os.path.exists(db_path):
+        return {"history": [], "message": "Chưa có lịch sử thay đổi giá nào."}
+    try:
+        with sqlite3.connect(db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT * FROM pricing_history ORDER BY transitioned_at DESC LIMIT ?",
+                (limit,)
+            ).fetchall()
+        return {"history": [dict(r) for r in rows]}
+    except Exception as e:
+        return {"history": [], "error": str(e)}
+
 @app.get("/verify", response_class=HTMLResponse)
 async def verification_dashboard(username: str = Depends(get_current_username)):
     """

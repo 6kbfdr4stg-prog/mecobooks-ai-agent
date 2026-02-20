@@ -398,22 +398,63 @@
                                 </div>
                                 <div class="bg-gray-50 rounded-xl p-4 text-sm text-gray-600 border border-gray-100"
                                     id="pricing-recommendation"></div>
-                                <div class="mt-4 flex gap-3">
+                                <!-- Lower Actions & History -->
+                                <div class="flex flex-wrap gap-4 pt-4 border-t border-gray-100">
                                     <button onclick="applyMarkdowns(true)"
-                                        class="flex-1 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-100 transition-all">
-                                        🔍 Xem trước hàng cần giảm giá
+                                        class="bg-white text-gray-700 border border-gray-300 px-5 py-2.5 rounded-lg hover:bg-gray-50 text-sm font-medium transition-all flex items-center gap-2">
+                                        🔍 Xem trước hàng cần giảm giá (Tier 2)
                                     </button>
                                     <button onclick="applyMarkdowns(false)"
-                                        class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 transition-all font-semibold">
+                                        class="bg-orange-50 text-orange-700 border border-orange-200 px-5 py-2.5 rounded-lg hover:bg-orange-100 text-sm font-medium transition-all flex items-center gap-2">
                                         ⚡ Áp dụng giảm giá Tầng 2 ngay
                                     </button>
+                                    <button onclick="loadPricingHistory()"
+                                        class="bg-white text-indigo-600 border border-indigo-200 px-5 py-2.5 rounded-lg hover:bg-indigo-50 text-sm font-medium transition-all flex items-center gap-2 ml-auto">
+                                        📜 Xem lịch sử đổi giá
+                                    </button>
+                                </div>
+
+                                <!-- Markdown Results Area -->
+                                <div id="markdown-result"
+                                    class="hidden mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                    <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                                        📝 Kết quả xử lý hàng tồn
+                                    </h3>
+                                    <div id="markdown-list" class="space-y-2 max-h-60 overflow-y-auto pr-2 text-xs">
+                                    </div>
+                                </div>
+
+                                <!-- Pricing History Modal/Section -->
+                                <div id="pricing-history-section" class="hidden mt-6 pt-6 border-t border-gray-200">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h3 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                            📜 Nhật ký thay đổi tầng giá (Pricing History)
+                                        </h3>
+                                        <button
+                                            onclick="document.getElementById('pricing-history-section').classList.add('hidden')"
+                                            class="text-gray-400 hover:text-gray-600">✕</button>
+                                    </div>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-left text-xs">
+                                            <thead>
+                                                <tr class="text-gray-400 border-b border-gray-100">
+                                                    <th class="pb-2 font-medium">Thời gian</th>
+                                                    <th class="pb-2 font-medium">Sản phẩm</th>
+                                                    <th class="pb-2 font-medium">Lộ trình</th>
+                                                    <th class="pb-2 font-medium">Giá cũ</th>
+                                                    <th class="pb-2 font-medium">Giá mới</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="pricing-history-list" class="divide-y divide-gray-50">
+                                                <!-- Rows dynamic -->
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
 
                             <!-- Markdown Result -->
-                            <div id="markdown-result"
-                                class="hidden mt-4 p-4 bg-gray-50 rounded-xl border border-gray-100 text-sm max-h-64 overflow-y-auto">
-                            </div>
+
 
                             <div id="pricing-empty" class="py-10 text-center text-gray-400">
                                 <div class="text-4xl mb-2 opacity-30">💰</div>
@@ -1089,33 +1130,72 @@
 
         async function applyMarkdowns(dryRun) {
             const markdownResult = document.getElementById('markdown-result');
-            markdownResult.innerHTML = '<p class="text-gray-400 text-center py-4">⏳ Đang quét kho hàng...</p>';
+            const markdownList = document.getElementById('markdown-list');
             markdownResult.classList.remove('hidden');
+            markdownList.innerHTML = '<p class="text-gray-400 text-center py-4">⏳ Đang quét kho hàng...</p>';
 
             try {
                 const response = await fetch(`/api/price-strategy/apply-markdowns?dry_run=${dryRun}`, { method: 'POST' });
                 const data = await response.json();
 
                 if (data.total_stale === 0) {
-                    markdownResult.innerHTML = '<p class="text-green-600 text-center py-4">✅ Không có sản phẩm nào tồn kho quá 30 ngày!</p>';
+                    markdownList.innerHTML = '<p class="text-green-600 text-center py-4">✅ Không có sản phẩm nào tồn kho quá 30 ngày!</p>';
                     return;
                 }
 
                 const action = dryRun ? 'Xem trước' : 'Đã giảm giá';
                 const items = data.markdowns.map(item =>
-                    `<div class="flex justify-between py-2 border-b border-gray-100">
-                        <span class="text-gray-700">${item.title.substring(0, 50)}</span>
-                        <span class="text-orange-600 font-medium">${new Intl.NumberFormat('vi-VN').format(item.old_price)}đ → ${new Intl.NumberFormat('vi-VN').format(item.new_price)}đ</span>
+                    `<div class="flex justify-between py-2 border-b border-gray-100 italic">
+                        <span class="text-gray-700 font-medium">${item.title}</span>
+                        <span class="text-orange-600 font-bold">${new Intl.NumberFormat('vi-VN').format(item.old_price)}đ → ${new Intl.NumberFormat('vi-VN').format(item.new_price)}đ</span>
                     </div>`
                 ).join('');
 
                 markdownResult.innerHTML = `
-                    <div class="font-semibold text-gray-700 mb-2">${action}: ${data.total_marked_down}/${data.total_stale} sản phẩm tồn kho > 30 ngày</div>
-                    ${items}
-                    ${!dryRun ? '<p class="text-green-600 mt-3 font-medium">✅ Đã cập nhật giá trên Haravan & gửi báo cáo Telegram!</p>' : '<p class="text-orange-500 mt-3">👆 Nhấn \'Áp dụng\' để thực sự thay đổi giá.</p>'}
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-sm font-bold text-gray-700 flex items-center gap-2">📝 Kết quả xử lý hàng tồn (${action})</h3>
+                        <span class="text-xs bg-gray-200 px-2 py-1 rounded">${data.total_marked_down}/${data.total_stale} SP</span>
+                    </div>
+                    <div class="space-y-1 max-h-60 overflow-y-auto pr-2 bg-white rounded-lg p-3 border border-gray-100 shadow-inner">
+                        ${items}
+                    </div>
+                    ${!dryRun ? '<p class="text-green-600 mt-3 text-xs font-bold">✅ Đã cập nhật giá trên Haravan & gửi báo cáo Telegram!</p>' : '<p class="text-orange-500 mt-3 text-xs font-bold">⚠️ Nhấn "Áp dụng giảm giá Tầng 2 ngay" để thực hiện thay đổi thực tế.</p>'}
                 `;
             } catch (err) {
-                markdownResult.innerHTML = `<p class="text-red-400">Lỗi: ${err.message}</p>`;
+                markdownList.innerHTML = `<p class="text-red-400">Lỗi: ${err.message}</p>`;
+            }
+        }
+
+        async function loadPricingHistory() {
+            const section = document.getElementById('pricing-history-section');
+            const list = document.getElementById('pricing-history-list');
+            section.classList.remove('hidden');
+            list.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-400">Đang tải lịch sử...</td></tr>';
+
+            try {
+                const response = await fetch('/api/price-strategy/history');
+                const data = await response.json();
+
+                if (!data.history || data.history.length === 0) {
+                    list.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-400">Trống (chưa có ghi nhận chuyển tầng giá)</td></tr>';
+                    return;
+                }
+
+                list.innerHTML = data.history.map(h => `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="py-3 text-gray-500 font-mono">${h.transitioned_at.split(' ')[1]}<br><span class="text-[10px]">${h.transitioned_at.split(' ')[0]}</span></td>
+                        <td class="py-3 font-medium text-gray-700">${h.title}</td>
+                        <td class="py-3">
+                            <span class="px-2 py-1 rounded-full text-[10px] font-bold ${h.from_tier == 1 ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600'}">T${h.from_tier || '?'}</span>
+                            <span class="mx-1 text-gray-300">→</span>
+                            <span class="px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold">T${h.to_tier}</span>
+                        </td>
+                        <td class="py-3 text-gray-400 line-through">${new Intl.NumberFormat('vi-VN').format(h.old_price)}đ</td>
+                        <td class="py-3 text-indigo-600 font-bold">${new Intl.NumberFormat('vi-VN').format(h.new_price)}đ</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                list.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-red-400">Lỗi: ${err.message}</td></tr>`;
             }
         }
 

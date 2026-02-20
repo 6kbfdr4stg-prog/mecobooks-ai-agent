@@ -437,6 +437,37 @@ class HaravanClient:
                 break
         return all_products
 
+    def tag_product_tier(self, product_id: int, tier: int) -> bool:
+        """
+        Tags a product with its current pricing tier (1 or 2) on Haravan.
+        Replaces any existing mecobooks-tier tag.
+        Returns True on success.
+        """
+        new_tag = f"mecobooks-tier-{tier}"
+        old_tag = f"mecobooks-tier-{2 if tier == 1 else 1}"
+
+        # First fetch the product's existing tags
+        endpoint = f"{self.shop_url}/admin/products/{product_id}.json"
+        try:
+            resp = requests.get(endpoint, headers=self.headers, params={"fields": "id,tags"})
+            resp.raise_for_status()
+            product = resp.json().get("product", {})
+            existing_tags = [t.strip() for t in product.get("tags", "").split(",") if t.strip()]
+
+            # Remove old tier tag, add new tier tag
+            updated_tags = [t for t in existing_tags if t != old_tag]
+            if new_tag not in updated_tags:
+                updated_tags.append(new_tag)
+
+            tags_str = ", ".join(updated_tags)
+            payload = {"product": {"id": product_id, "tags": tags_str}}
+            put_resp = requests.put(endpoint, headers=self.headers, json=payload)
+            put_resp.raise_for_status()
+            return True
+        except Exception as e:
+            print(f"Error tagging product {product_id} as {new_tag}: {e}")
+            return False
+
 if __name__ == "__main__":
     # Test the client
     client = HaravanClient()
