@@ -15,3 +15,6 @@ app.db
 reports/
 debug_skus.py
 static/videos/
+.cache/
+server.pid
+tmp/
