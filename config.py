@@ -43,3 +43,11 @@ WOO_CONSUMER_SECRET = os.environ.get("WOO_CONSUMER_SECRET", "cs_9c22398f5238bb57
 # Telegram Configuration
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "8460049803:AAGxKOO3buc-vX8mk-uTcShlN52gwgKIaqA")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "8425705625")
+
+# Timezone Configuration (Asia/Ho_Chi_Minh - UTC+7)
+from datetime import datetime, timezone, timedelta
+HANOI_TZ = timezone(timedelta(hours=7))
+
+def get_now_hanoi():
+    """Returns the current datetime in Hanoi timezone."""
+    return datetime.now(HANOI_TZ)

@@ -12,6 +12,7 @@ import requests
 import glob
 import sqlite3
 from datetime import datetime
+from config import get_now_hanoi
 
 # Initialize Database
 init_db()
@@ -74,9 +75,11 @@ def sync_reports_to_db():
             content = f.read()
             
         # Infer agent name and time from filename/metadata
-        # simplistic mapping for now, using filename as key identifier
+        # Using Hanoi time for modification time conversion
         stat = os.stat(filepath)
-        created_at = datetime.fromtimestamp(stat.st_mtime)
+        from datetime import timezone, timedelta
+        hanoi_offset = timezone(timedelta(hours=7))
+        created_at = datetime.fromtimestamp(stat.st_mtime, hanoi_offset)
         
         c.execute("INSERT INTO reports (agent_name, report_type, content, created_at) VALUES (?, ?, ?, ?)",
                   (filename, "markdown", content, created_at))
@@ -544,8 +547,9 @@ async def run_agent_sync(agent_name: str, username: str = Depends(get_current_us
     if content and isinstance(content, str):
         conn = get_db_connection()
         c = conn.cursor()
+        now_hanoi = get_now_hanoi()
         c.execute("INSERT INTO reports (agent_name, report_type, content, created_at) VALUES (?, ?, ?, ?)",
-                  (f"{agent_name}_{datetime.now().strftime('%Y%m%d%H%M')}.md", "markdown", content, datetime.utcnow()))
+                  (f"{agent_name}_{now_hanoi.strftime('%Y%m%d%H%M')}.md", "markdown", content, now_hanoi))
         conn.commit()
         conn.close()
         

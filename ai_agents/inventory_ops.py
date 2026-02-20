@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 from haravan_client import HaravanClient
 from database import get_db_connection
+from config import get_now_hanoi
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -70,7 +71,7 @@ class InventoryOpsAgent:
 
     def generate_report(self, results):
         """Generates a markdown report and saves to DB."""
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = get_now_hanoi().strftime("%Y-%m-%d %H:%M:%S")
         report = f"# 📦 Báo cáo Giám sát Kho hàng (Haravan Monitor)\n\n"
         report += f"**Thời gian thực hiện**: `{timestamp}`\n\n"
         
@@ -108,7 +109,7 @@ class InventoryOpsAgent:
             c = conn.cursor()
             c.execute(
                 "INSERT INTO reports (agent_name, report_type, content, created_at) VALUES (?, ?, ?, ?)",
-                ("Inventory Ops", "Haravan Inventory Monitor", report, datetime.now())
+                ("Inventory Ops", "Haravan Inventory Monitor", report, get_now_hanoi())
             )
             conn.commit()
             conn.close()

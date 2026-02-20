@@ -1,7 +1,7 @@
 import requests
 import json
 import os
-from config import HARAVAN_SHOP_URL, HARAVAN_ACCESS_TOKEN
+from config import HARAVAN_SHOP_URL, HARAVAN_ACCESS_TOKEN, get_now_hanoi
 
 class HaravanClient:
     def __init__(self, shop_url=HARAVAN_SHOP_URL, access_token=HARAVAN_ACCESS_TOKEN):
@@ -152,15 +152,15 @@ class HaravanClient:
         Calculates sales statistics for the given period.
         Currently supports 'month' (current calendar month).
         """
-        from datetime import datetime
-        now = datetime.now()
+        now = get_now_hanoi()
         
         if period == "month":
-            # First day of current month
+            # First day of current month in Hanoi time
             start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         else:
             # Default to last 30 days if unknown
-            start_date = now.replace(day=1) # Simplified for now
+            from datetime import timedelta
+            start_date = now - timedelta(days=30)
             
         endpoint = f"{self.shop_url}/admin/orders.json"
         all_orders = []
@@ -204,8 +204,8 @@ class HaravanClient:
         Calculates the quantity sold for each variant in the last 'days'.
         Returns a dictionary mapping sku -> quantity_sold.
         """
-        from datetime import datetime, timedelta
-        start_date = datetime.now() - timedelta(days=days)
+        from datetime import timedelta
+        start_date = get_now_hanoi() - timedelta(days=days)
         
         endpoint = f"{self.shop_url}/admin/orders.json"
         variant_sales = {}
