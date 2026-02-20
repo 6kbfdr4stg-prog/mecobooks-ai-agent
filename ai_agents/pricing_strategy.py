@@ -1,4 +1,5 @@
 import logging
+import time
 import sys
 import os
 import sqlite3
@@ -465,11 +466,11 @@ class PricingStrategyAgent:
                 body_html += f"<li>{p.get('title')}</li>"
                 if p.get('images'):
                     images.append(p['images'][0].get('src'))
-                sku = p.get('variants', [{}])[0].get('sku', 'NOSKU')
-                skus.append(sku)
+                sku = p.get('variants', [{}])[0].get('sku') or 'NOSKU'
+                skus.append(str(sku))
             body_html += "</ul><p><i>Sách hiếm, dọn kho thanh lý nhanh. Số lượng cực hạn!</i></p>"
 
-            bundle_sku = f"BNDL-{'-'.join(skus[:2])}"[:50]
+            bundle_sku = f"BNDL-{'-'.join(skus[:2])}-{int(time.time()) % 10000}"[:50]
             
             # Merge images into a collage (Phase 7.5)
             merged_img_b64 = self._merge_bundle_images(images[:3])
@@ -510,7 +511,8 @@ class PricingStrategyAgent:
             imgs = []
             for url in image_urls:
                 if not url: continue
-                resp = requests.get(url, timeout=10)
+                headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+                resp = requests.get(url, timeout=10, headers=headers)
                 if resp.status_code == 200:
                     img = Image.open(io.BytesIO(resp.content))
                     imgs.append(img)

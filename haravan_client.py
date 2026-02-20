@@ -420,7 +420,7 @@ class HaravanClient:
             params = {
                 "limit": 250,
                 "page": page,
-                "fields": "id,title,variants,published_at"
+                "fields": "id,title,variants,images,published_at"
             }
             try:
                 response = requests.get(endpoint, headers=self.headers, params=params)
@@ -490,7 +490,8 @@ class HaravanClient:
                         "inventory_management": "haravan",
                         "inventory_policy": "deny",
                         "inventory_quantity": 1,
-                        "requires_shipping": True
+                        "requires_shipping": True,
+                        "option1": "Default Title"
                     }
                 ]
             }
@@ -501,7 +502,10 @@ class HaravanClient:
             payload["product"]["images"] = []
             for img in images:
                 if isinstance(img, dict) and "attachment" in img:
-                    payload["product"]["images"].append({"attachment": img["attachment"]})
+                    payload["product"]["images"].append({
+                        "attachment": img["attachment"],
+                        "filename": "collage.jpg"
+                    })
                 else:
                     payload["product"]["images"].append({"src": img})
 
