@@ -8,6 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from llm_service import LLMService
 from haravan_client import HaravanClient
+from ai_agents.telegram_client import send_telegram_message
 
 class StrategicAnalystAgent:
     def __init__(self):
@@ -122,6 +123,37 @@ class StrategicAnalystAgent:
         Viết bằng Tiếng Việt, phong cách sắc bén, hướng tới hành động.
         """
         return self.llm.generate_response(prompt)
+
+    def run(self):
+        """Standardized run method for Strategic Analyst."""
+        print("🚀 [Strategic Agent] Running complete weekly analysis...")
+        
+        # 1. Growth Strategy
+        from ai_agents.inventory_analyst import InventoryAnalystAgent
+        inv_agent = InventoryAnalystAgent()
+        inv_report = inv_agent.analyze_stock()
+        growth_strategy = self.generate_growth_strategy(inv_report)
+        
+        # 2. Revenue Deep Dive
+        revenue_deep_dive = self.analyze_revenue_depth()
+        
+        # 3. Save as Markdown Report
+        timestamp = get_now_hanoi().strftime("%Y-%m-%d %H:%M:%S")
+        report = f"# 🚀 BÁO CÁO CHIẾN LƯỢC TĂNG TRƯỞNG\n\n"
+        report += f"**Thời gian**: `{timestamp}`\n\n"
+        report += f"## 📈 Chiến lược Tuần tới\n\n{growth_strategy}\n\n"
+        report += f"## 💰 Phân tích Doanh thu chuyên sâu\n\n{revenue_deep_dive}\n\n"
+        report += f"---\n*Báo cáo được tạo bởi Strategic Analyst Agent.*"
+        
+        # Send Telegram Notification (Phase 9)
+        try:
+            tg_msg = f"🚀 <b>Weekly Strategic Analysis Ready</b>\n\n"
+            tg_msg += f"📊 Đã hoàn thành phân tích doanh thu và chiến lược tăng trưởng tuần tới.\n"
+            tg_msg += f"\n<a href='https://mecobooks-ai-agent.onrender.com/verify'>Xem báo cáo chi tiết</a>"
+            send_telegram_message(tg_msg)
+        except: pass
+        
+        return report
 
 if __name__ == "__main__":
     analyst = StrategicAnalystAgent()

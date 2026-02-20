@@ -35,17 +35,8 @@ def job_integrity_check():
 def job_strategic_analysis():
     print("⏰ [Scheduler] Triggering Strategic Analysis (Agent 4)...")
     try:
-        inventory_agent = InventoryAnalystAgent()
-        report = inventory_agent.analyze_stock()
-        
-        strategic_agent = StrategicAnalystAgent()
-        strategy = strategic_agent.generate_growth_strategy(report)
-        
-        print("\n=== 🚀 CHIẾN LƯỢC TĂNG TRƯỞNG TUẦN TỚI ===")
-        print(strategy)
-        print("==========================================\n")
-        
-        # In a real app, send this to Telegram/Zalo of the owner
+        agent = StrategicAnalystAgent()
+        agent.run()
     except Exception as e:
         print(f"❌ Strategic Analysis Failed: {e}")
 
@@ -60,18 +51,8 @@ def job_email_marketing():
 def job_create_content():
     print("⏰ [Scheduler] Triggering Daily Content Creation (Agent 1 & 2)...")
     try:
-        # First, check inventory to see what to promote
-        inventory_agent = InventoryAnalystAgent()
-        report = inventory_agent.analyze_stock() # Standard ABC Analysis
-        
-        # Simple Logic: Promote one 'Nhóm A' and one 'Nhóm C'
-        # For now, let ContentCreator pick but give it the report as context
         agent = ContentCreatorAgent()
-        result = agent.generate_daily_content()
-        
-        print(f"✅ Content Generated: {result.get('caption', '')[:50]}...")
-        agent.send_to_webhook(result)
-
+        agent.run()
     except Exception as e:
         print(f"❌ Content Generation Failed: {e}")
 

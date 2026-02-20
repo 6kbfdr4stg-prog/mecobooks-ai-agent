@@ -7,6 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from haravan_client import HaravanClient
 from llm_service import LLMService
+from ai_agents.telegram_client import send_telegram_message
 # from video_generator import create_video_from_product # Placeholder for future
 
 class ContentCreatorAgent:
@@ -190,6 +191,16 @@ class ContentCreatorAgent:
         if content and isinstance(content, dict):
             # Send to webhook/email as before
             self.send_to_webhook(content)
+            
+            # Send Telegram Notification (Phase 9)
+            try:
+                tg_msg = f"✨ <b>Marketing Content Created</b>\n\n"
+                tg_msg += f"📦 {content['product']['title']}\n"
+                tg_msg += f"💰 {content['product']['price']} VNĐ\n"
+                tg_msg += f"\n📱 {content['caption'][:100]}...\n"
+                tg_msg += f"\n<a href='https://mecobooks-ai-agent.onrender.com/verify'>Xem chi tiết</a>"
+                send_telegram_message(tg_msg)
+            except: pass
             
             # Format as Markdown String for Database/Dashboard
             md_output = f"# ✍️ Marketing Content: {content['product']['title']}\n\n"

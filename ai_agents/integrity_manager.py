@@ -8,6 +8,7 @@ from datetime import datetime
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import get_now_hanoi
+from ai_agents.telegram_client import send_telegram_message
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -141,6 +142,22 @@ class IntegrityManagerAgent:
             # Simple conversion for email
             html_content = f"<html><body><pre>{content}</pre></body></html>"
             self.notifier.send_report("🛡️ [Integrity] Báo cáo Hệ thống", html_content)
+        
+        # Send Telegram Notification (Phase 9)
+        try:
+            passed = all(r['status'] == 'PASS' for r in results)
+            status_emoji = "✅" if passed else "❌"
+            tg_msg = f"{status_emoji} <b>System Integrity Check</b>\n\n"
+            for r in results:
+                icon = "✅" if r['status'] == 'PASS' else "❌"
+                tg_msg += f"{icon} {r['check']}: {r['status']}\n"
+            
+            if actions:
+                tg_msg += f"\n🛠 <b>Hành động:</b> {len(actions)} việc cần làm."
+            
+            tg_msg += f"\n\n<a href='https://mecobooks-ai-agent.onrender.com/verify'>Xem chi tiết</a>"
+            send_telegram_message(tg_msg)
+        except: pass
             
         return report_path
 

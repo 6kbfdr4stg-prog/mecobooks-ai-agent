@@ -11,6 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from haravan_client import HaravanClient
 from ai_agents.content_creator import LLMService
 from config import get_now_hanoi
+from ai_agents.telegram_client import send_telegram_message
 
 class EmailMarketingAgent:
     def __init__(self):
@@ -132,6 +133,17 @@ class EmailMarketingAgent:
                     print(f"   -> Sending Miss You to {customer_email}")
                     subject, body = self.generate_email_content(first_name, "re_engagement", items)
                     self.send_email(customer_email, subject, body)
+        
+        # Send Telegram Notification (Phase 9)
+        try:
+            tg_msg = f"📧 <b>Daily Email Campaigns Summary</b>\n\n"
+            total = len(recent_orders or []) + len(lapsed_orders or [])
+            tg_msg += f"✅ Đã xử lý {total} khách tiềm năng.\n"
+            tg_msg += f"💌 Thank you: {len(recent_orders or [])}\n"
+            tg_msg += f"💌 Re-engagement: {len(lapsed_orders or [])}\n"
+            tg_msg += f"\n<a href='https://mecobooks-ai-agent.onrender.com/verify'>Xem chi tiết</a>"
+            send_telegram_message(tg_msg)
+        except: pass
 
 if __name__ == "__main__":
     agent = EmailMarketingAgent()

@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from chatbot import Chatbot
 from utils.logger import setup_logger
 from config import get_now_hanoi
+from ai_agents.telegram_client import send_telegram_message
 
 class MarketResearchAgent:
     def __init__(self):
@@ -96,11 +97,21 @@ class MarketResearchAgent:
 
             # 3. Export to Sheets (via n8n)
             self.parse_and_export(report_content)
-            
-            return {
+            result = {
                 "report_path": report_path,
                 "content": report_content
             }
+            
+            # Send Telegram Notification (Phase 9)
+            try:
+                tg_msg = f"🔍 <b>Market Research Completed</b>\n\n"
+                tg_msg += f"🗓 Ngày: {today}\n"
+                tg_msg += f"📊 Đã tìm thấy các xu hướng sách mới cho năm 2025.\n"
+                tg_msg += f"\n<a href='https://mecobooks-ai-agent.onrender.com/verify'>Xem báo cáo chi tiết</a>"
+                send_telegram_message(tg_msg)
+            except: pass
+            
+            return result
 
         except Exception as e:
             print(f"❌ [Market Research Agent] Error: {e}")
