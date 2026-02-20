@@ -5,6 +5,9 @@ import requests
 import shutil # Moved from check_disk_space
 import logging
 from datetime import datetime
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import get_now_hanoi
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -97,7 +100,7 @@ class IntegrityManagerAgent:
 
     def generate_report(self, results, actions):
         """Generates a markdown report of the integrity check."""
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = get_now_hanoi().strftime("%Y-%m-%d %H:%M:%S")
         report = f"# 🛡️ Báo cáo Bảo trì Hệ thống (Integrity Report)\n\n"
         report += f"**Thời gian kiểm tra**: `{timestamp}`\n\n"
         

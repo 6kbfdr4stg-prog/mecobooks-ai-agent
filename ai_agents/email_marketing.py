@@ -8,12 +8,13 @@ import sys
 # Add parent dir to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from woocommerce_client import WooCommerceClient
+from haravan_client import HaravanClient
 from ai_agents.content_creator import LLMService
+from config import get_now_hanoi
 
 class EmailMarketingAgent:
     def __init__(self):
-        self.woo = WooCommerceClient()
+        self.hrv = HaravanClient()
         self.llm = LLMService()
         self.sender_email = os.environ.get("EMAIL_SENDER")
         self.sender_password = os.environ.get("EMAIL_PASSWORD")
@@ -93,19 +94,19 @@ class EmailMarketingAgent:
         print("📧 [Email Agent] Starting daily campaign...")
         
         # 1. Campaign: Thank You (Sold yesterday)
-        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%dT00:00:00')
-        today = datetime.now().strftime('%Y-%m-%dT00:00:00')
+        now_hrv = get_now_hanoi()
+        yesterday = (now_hrv - timedelta(days=1)).strftime('%Y-%m-%dT00:00:00')
+        today = now_hrv.strftime('%Y-%m-%dT00:00:00')
         
         # Fetch orders created after yesterday 00:00 and before today 00:00 (Roughly yesterday)
-        # Woo API 'after' is exclusive? 'before' inclusive? best to just check date string logic or rely on params.
-        recent_orders = self.woo.get_orders(after=yesterday, before=today)
+        recent_orders = self.hrv.get_orders(after=yesterday, before=today, limit=50)
         
         print(f"   checking orders from {yesterday} to {today}...")
         
         if recent_orders:
             for order in recent_orders:
-                customer_email = order.get('billing', {}).get('email')
-                first_name = order.get('billing', {}).get('first_name', 'Bạn')
+                customer_email = order.get('email') or order.get('customer', {}).get('email')
+                first_name = order.get('customer', {}).get('first_name') or 'Bạn'
                 items = order.get('line_items', [])
                 
                 if customer_email:
@@ -115,15 +116,16 @@ class EmailMarketingAgent:
                     
         # 2. Campaign: Re-engagement (Sold 30 days ago)
         # (Simplified: Fetch orders from 30-31 days ago range)
-        days_ago_30 = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%dT00:00:00')
-        days_ago_29 = (datetime.now() - timedelta(days=29)).strftime('%Y-%m-%dT00:00:00')
+        now_hrv = get_now_hanoi()
+        days_ago_30 = (now_hrv - timedelta(days=30)).strftime('%Y-%m-%dT00:00:00')
+        days_ago_29 = (now_hrv - timedelta(days=29)).strftime('%Y-%m-%dT00:00:00')
         
-        lapsed_orders = self.woo.get_orders(after=days_ago_30, before=days_ago_29)
+        lapsed_orders = self.hrv.get_orders(after=days_ago_30, before=days_ago_29, limit=50)
         
         if lapsed_orders:
              for order in lapsed_orders:
-                customer_email = order.get('billing', {}).get('email')
-                first_name = order.get('billing', {}).get('first_name', 'Bạn')
+                customer_email = order.get('email') or order.get('customer', {}).get('email')
+                first_name = order.get('customer', {}).get('first_name') or 'Bạn'
                 items = order.get('line_items', [])
                 
                 if customer_email:

@@ -217,6 +217,12 @@
                 </div>
             </header>
 
+            <div class="px-8 py-4 bg-yellow-50 border-b border-yellow-200 flex items-center gap-3 text-sm text-yellow-800"
+                id="live-activity-bar">
+                <span class="animate-pulse">🟢</span>
+                <span id="live-message">Hệ thống sẵn sàng. Chào mừng bạn quay trở lại!</span>
+            </div>
+
             <div class="px-8 py-8 max-w-7xl mx-auto space-y-8">
 
                 <!-- KPI Section -->
@@ -788,10 +794,45 @@
             }
         }
 
+        // --- 3. SSE Live Updates Logic ---
+        function connectSSE() {
+            const eventSource = new EventSource('/api/events');
+            const liveBar = document.getElementById('live-activity-bar');
+            const liveMsg = document.getElementById('live-message');
+
+            eventSource.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                console.log("SSE Event:", data);
+
+                if (data.type === 'api_progress' || data.type === 'agent_status') {
+                    liveMsg.textContent = data.message;
+                    liveBar.classList.remove('bg-yellow-50', 'text-yellow-800');
+                    liveBar.classList.add('bg-blue-50', 'text-blue-800');
+
+                    // Specific logic for different agents if needed
+                    if (data.type === 'agent_status' && data.message.includes('Success')) {
+                        setTimeout(() => {
+                            liveBar.classList.remove('bg-blue-50', 'text-blue-800');
+                            liveBar.classList.add('bg-green-50', 'text-green-800');
+                        }, 1000);
+                    }
+                }
+            };
+
+            eventSource.onerror = function (err) {
+                console.error("SSE Error:", err);
+                liveMsg.textContent = "Mất kết nối Live Update. Đang thử lại...";
+                liveBar.classList.add('bg-red-50', 'text-red-800');
+                eventSource.close();
+                setTimeout(connectSSE, 5000);
+            };
+        }
+
         // Init
         document.addEventListener('DOMContentLoaded', () => {
             loadReports();
             loadStats();
+            connectSSE();
         });
 
     </script>

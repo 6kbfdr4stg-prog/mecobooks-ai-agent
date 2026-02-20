@@ -7,11 +7,11 @@ from collections import Counter
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from llm_service import LLMService
-from woocommerce_client import WooCommerceClient
+from haravan_client import HaravanClient
 
 class StrategicAnalystAgent:
     def __init__(self):
-        self.woo = WooCommerceClient()
+        self.hrv = HaravanClient()
         self.llm = LLMService()
         self.log_file = "logs/app.jsonl"
 
@@ -75,6 +75,51 @@ class StrategicAnalystAgent:
         - HÀNH ĐỘNG: 3 việc cụ thể admin phải làm ngay (Ví dụ: Nhập thêm X, giảm giá Y, đẩy content Z).
         
         Viết bằng Tiếng Việt, phong cách chuyên nghiệp, quyết đoán.
+        """
+        return self.llm.generate_response(prompt)
+
+    def analyze_revenue_depth(self):
+        """
+        Provides a deep dive into revenue trends and product performance.
+        """
+        print("🤖 [Strategic Agent] Performing Revenue Deep Dive...")
+        
+        # 1. Get Core Stats
+        stats = self.hrv.get_sales_report(period="month")
+        
+        # 2. Get Daily Trends
+        daily_trends = self.hrv.get_daily_revenue(period="month")
+        
+        # 3. Get Top Revenue Items
+        top_items = self.hrv.get_product_revenue_ranking(days=30)
+        
+        # 4. Format for LLM
+        trends_str = "\n".join([f"- {d}: {v:,.0f} đ" for d, v in sorted(daily_trends.items())])
+        top_str = "\n".join([f"- {name}: {rev:,.0f} đ" for name, rev in top_items[:10]])
+        
+        prompt = f"""
+        Bạn là Chuyên gia Phân tích Tài chính của Tiệm Sách Anh Tuấn.
+        Dưới đây là dữ liệu doanh thu chi tiết trong tháng này (Hỗ trợ bởi Haravan):
+        
+        TỔNG QUAN:
+        - Tổng doanh thu thuần: {stats['total_sales']:,.0f} đ
+        - Tổng số đơn hàng thành công: {stats['total_orders']}
+        - Số lượng khách hàng: {stats['total_customers']}
+        
+        XU HƯỚNG THEO NGÀY:
+        {trends_str}
+        
+        TOP 10 SẢN PHẨM MANG LẠI DÒNG TIỀN LỚN NHẤT:
+        {top_str}
+        
+        NHIỆM VỤ:
+        Hãy viết một báo cáo phân tích sâu (Deep Dive) bao gồm:
+        1. Nhận xét về xu hướng tăng trưởng theo ngày (Ngày nào đột biến? Tại sao có thể như vậy?).
+        2. Phân tích về danh mục sản phẩm chủ lực (Các sản phẩm mang lại nhiều tiền nhất có chung đặc điểm gì?).
+        3. Dự báo doanh thu cuối tháng dựa trên tốc độ hiện tại.
+        4. Đề xuất hành động cụ thể để tối ưu hóa doanh thu (Ví dụ: Đẩy mạnh marketing sản phẩm X, hoặc tạo combo cho ngày Y).
+        
+        Viết bằng Tiếng Việt, phong cách sắc bén, hướng tới hành động.
         """
         return self.llm.generate_response(prompt)
 

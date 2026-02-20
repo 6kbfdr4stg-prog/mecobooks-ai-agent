@@ -4,6 +4,7 @@ from datetime import datetime
 from haravan_client import HaravanClient
 from database import get_db_connection
 from config import get_now_hanoi
+from utils.event_manager import event_manager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -26,7 +27,9 @@ class InventoryOpsAgent:
         2. Fetch Haravan Sales (Last 30 days)
         3. Identify Low Stock and Hot Items
         """
-        print("📦 Starting Haravan Inventory Monitor Agent...")
+        message = "📦 Starting Haravan Inventory Monitor Agent..."
+        print(message)
+        event_manager.emit("agent_status", message, {"agent": "inventory_ops", "step": "start"})
         
         # 1. Fetch Haravan Inventory
         h_variants = self.haravan.get_all_products()
@@ -40,7 +43,9 @@ class InventoryOpsAgent:
                     "name": v['title'],
                     "qty": v.get('inventory_quantity', 0)
                 }
-        print(f"✅ Fetched {len(h_inventory)} variants from Haravan.")
+        message = f"✅ Fetched {len(h_inventory)} variants from Haravan."
+        print(message)
+        event_manager.emit("agent_status", message, {"agent": "inventory_ops", "count": len(h_inventory)})
         
         # 2. Fetch Haravan Sales Data
         v_sales = self.haravan.get_variant_sales(days=30)

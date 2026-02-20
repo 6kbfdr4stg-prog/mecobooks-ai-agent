@@ -5,13 +5,13 @@ import sys
 # Add parent dir to path to import services
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from woocommerce_client import WooCommerceClient
+from haravan_client import HaravanClient
 from llm_service import LLMService
 # from video_generator import create_video_from_product # Placeholder for future
 
 class ContentCreatorAgent:
     def __init__(self):
-        self.woo = WooCommerceClient()
+        self.hrv = HaravanClient()
         self.llm = LLMService()
         # Email Notifier
         try:
@@ -60,7 +60,7 @@ class ContentCreatorAgent:
             product = target_product
         else:
             # Fallback to search
-            products = self.woo.search_products("sách", limit=20)
+            products = self.hrv.get_products(limit=20)
             if not products:
                 return "⚠️ [Content Agent] No products found to promote."
             import random

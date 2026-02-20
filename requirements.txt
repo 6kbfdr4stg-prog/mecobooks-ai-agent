@@ -19,3 +19,4 @@ imageio
 numpy
 psutil
 sqlalchemy
+diskcache

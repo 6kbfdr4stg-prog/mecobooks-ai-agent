@@ -13,7 +13,7 @@ class LLMService:
 
         # Initialize the modern Client
         self.client = genai.Client(api_key=api_key)
-        self.model_name = 'gemini-2.0-flash'
+        self.model_name = 'gemini-flash-lite-latest'
 
     def generate_response(self, prompt, image_data=None, system_instruction=None):
         """

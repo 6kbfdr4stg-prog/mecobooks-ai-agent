@@ -6,14 +6,14 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from chatbot import Chatbot
-from woocommerce_client import WooCommerceClient
+from haravan_client import HaravanClient
 from utils.logger import setup_logger
 
 class SalesSupportAgent:
     def __init__(self):
         self.logger = setup_logger("sales_agent")
         self.bot = Chatbot()
-        self.woo = WooCommerceClient()
+        self.hrv = HaravanClient()
         self.conversations = {} # Store state per user_id
         
         # Load Knowledge Base
@@ -81,24 +81,29 @@ class SalesSupportAgent:
                 return "Mình chưa tìm thấy mã số nào trong tin nhắn. Bạn vui lòng nhập lại Mã đơn hàng (ví dụ: 25310) giúp mình nhé!"
             
             # Fetch Order
-            order = self.woo.get_order_by_id(order_id)
+            order = self.hrv.get_order_by_id(order_id)
             if order:
-                # Format response
-                status_trans = {
-                    "pending": "Chờ thanh toán",
-                    "processing": "Đang xử lý (Đang chuẩn bị hàng)",
-                    "on-hold": "Tạm giữ",
-                    "completed": "Đã hoàn thành",
+                # Haravan statuses are complex. Using Financial + Fulfillment + Status
+                status_v = order.get('status', 'unknown')
+                fin_status = order.get('financial_status', 'unknown')
+                ful_status = order.get('fulfillment_status', 'Chưa giao') or 'Chưa giao'
+                
+                status_map = {
+                    "open": "Mở",
+                    "closed": "Hoàn tất",
                     "cancelled": "Đã hủy",
-                    "refunded": "Đã hoàn tiền",
-                    "failed": "Thất bại",
-                    "trash": "Đã xóa"
+                    "voided": "Vô hiệu",
+                    "paid": "Đã thanh toán",
+                    "pending": "Chờ thanh toán",
+                    "fulfilled": "Đã giao hàng",
+                    "null": "Chưa giao"
                 }
-                status_vn = status_trans.get(order['status'], order['status'])
-                total = f"{int(float(order['total'])):,} VNĐ"
+                
+                status_text = f"{status_map.get(status_v, status_v)} ({status_map.get(fin_status, fin_status)})"
+                total = f"{int(float(order['total_price'])):,} VNĐ"
                 
                 # List items
-                items_str = ", ".join([f"{item['name']} (x{item['quantity']})" for item in order['line_items']])
+                items_str = ", ".join([f"{item['title']} (x{item['quantity']})" for item in order['line_items']])
                 
                 response = f"""
                 📦 **THÔNG TIN ĐƠN HÀNG #{order['id']}**
@@ -107,10 +112,10 @@ class SalesSupportAgent:
                 - Sản phẩm: {items_str}
                 """
                 
-                if order['status'] == 'pending':
+                if order.get('financial_status') == 'pending':
                     response += "\n\n⚠️ Đơn hàng đang chờ thanh toán. Shop sẽ sớm liên hệ xác nhận ạ."
-                elif order['status'] == 'completed':
-                    response += "\n\n✅ Đơn hàng đã giao thành công! Bạn hãy đánh giá 5 sao cho Shop nếu hài lòng nhé! ⭐"
+                elif order.get('status') == 'closed':
+                    response += "\n\n✅ Đơn hàng đã hoàn tất! Cảm ơn bạn đã tin tưởng MecoBooks. ❤️"
                 
                 # Reset state
                 self.conversations[user_id] = {"state": "NORMAL", "data": {}}
@@ -182,44 +187,48 @@ class SalesSupportAgent:
                 shipping_cost = str(data.get("shipping_fee", 20000))
                 
                 order_data = {
-                    "payment_method": "cod",
-                    "payment_method_title": "Cash on Delivery",
-                    "set_paid": False,
-                    "billing": {
+                    "email": "guest@example.com",
+                    "send_receipt": True,
+                    "financial_status": "pending",
+                    "fulfillment_status": None,
+                    "customer": {
                         "first_name": data["name"],
-                        "address_1": data["address"],
-                        "city": "", # Simplify
-                        "state": "",
-                        "postcode": "",
-                        "country": "VN",
-                        "email": "guest@example.com",
-                        "phone": data["phone"]
+                        "last_name": "",
+                        "email": "guest@example.com"
                     },
-                    "shipping": {
+                    "billing_address": {
                         "first_name": data["name"],
-                        "address_1": data["address"],
-                        "city": "",
-                        "state": "",
-                        "postcode": "",
-                        "country": "VN"
+                        "last_name": "",
+                        "address1": data["address"],
+                        "phone": data["phone"],
+                        "city": "Hồ Chí Minh", # Default or fallback
+                        "country": "Vietnam"
+                    },
+                    "shipping_address": {
+                        "first_name": data["name"],
+                        "last_name": "",
+                        "address1": data["address"],
+                        "phone": data["phone"],
+                        "city": "Hồ Chí Minh",
+                        "country": "Vietnam"
                     },
                     "line_items": [
                         {
-                            "product_id": data.get("product_id"),
+                            "variant_id": int(data.get("variant_id")),
                             "quantity": 1
                         }
                     ],
                     "shipping_lines": [
                         {
-                            "method_id": "flat_rate",
-                            "method_title": "Phí vận chuyển",
-                            "total": shipping_cost
+                            "code": "Flat Rate",
+                            "price": int(data.get("shipping_fee", 20000)),
+                            "title": "Phí vận chuyển"
                         }
                     ]
                 }
                 
-                print(f"📦 Creating Order: {order_data}")
-                new_order = self.woo.create_order(order_data)
+                print(f"📦 Creating Haravan Order: {order_data}")
+                new_order = self.hrv.create_order(order_data)
                 
                 if new_order:
                     # Log Conversion
@@ -232,12 +241,12 @@ class SalesSupportAgent:
                     # --- UPSELL LOGIC (Proactive Selling) ---
                     try:
                         import random
-                        # Get Best Sellers
-                        best_sellers = self.woo.get_products(limit=5, orderby="popularity")
+                        # Get Best Sellers (Using popular products or just some products for now)
+                        best_sellers = self.hrv.get_products(limit=5)
                         if best_sellers:
                             # Filter out the book just bought
-                            current_product_id = int(data.get("product_id", 0))
-                            recommendations = [p for p in best_sellers if p['id'] != current_product_id]
+                            current_variant_id = int(data.get("variant_id", 0))
+                            recommendations = [p for p in best_sellers if p['variant_id'] != current_variant_id]
                             
                             if recommendations:
                                 rec_product = random.choice(recommendations)
@@ -280,11 +289,8 @@ class SalesSupportAgent:
              if len(target_book) < 2:
                  return "Bạn muốn mua sách nào ạ? (Ví dụ: Mua sách Nhà Giả Kim)"
             
-             # AI: Infer Author
-             author_guess = self._infer_author(target_book)
-             
              # Search with fallback
-             products = self.woo.search_products(target_book, limit=1, author=author_guess)
+             products = self.hrv.search_products(target_book, limit=1)
              
              if products:
                  product = products[0]
@@ -293,7 +299,7 @@ class SalesSupportAgent:
                  # Start collecting info
                  self.conversations[user_id]["state"] = "COLLECTING_NAME"
                  self.conversations[user_id]["data"] = {
-                     "product_id": product['id'],
+                     "variant_id": product['variant_id'],
                      "product_name": product['title'],
                      "price": product['price']
                  }
@@ -310,11 +316,8 @@ class SalesSupportAgent:
         # Standard Consulting Flow (Existing Logic)
         intent_check = ["có sách", "còn sách", "tìm sách", "giá sách", "mua sách", "tìm cuốn", "có cuốn", "tìm quyển", "có quyển", "tư vấn", "hỏi về"]
         if any(phrase in query.lower() for phrase in intent_check):
-            # Infer Author
-            author_guess = self._infer_author(query)
-            
             # Search
-            products = self.woo.search_products(query, limit=5, author=author_guess)
+            products = self.hrv.search_products(query, limit=5)
             
             if products:
                 # Return structured data

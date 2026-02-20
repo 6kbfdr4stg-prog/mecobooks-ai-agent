@@ -12,7 +12,7 @@ load_dotenv()
 
 # Gemini API Configuration
 # Fallback hardcoded values (Known Good)
-FALLBACK_GEMINI_KEY = "AIzaSyDnse9_RdID7rB5qgdemYJ_Ip_9qkAKX3o"
+FALLBACK_GEMINI_KEY = "AIzaSyCdDjbxja5Kp9107JNyd8x8xBYKWnPp2nU"
 FALLBACK_TTS_KEY = "AIzaSyBsXsKTO_g4tUVmKxNW1JPlOpLNGxGBIqE"
 
 def get_valid_key(env_name, fallback):

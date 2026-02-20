@@ -1,16 +1,18 @@
-from fastapi import FastAPI, HTTPException, Request, Response, Form, File, UploadFile, BackgroundTasks, Body, Depends, status
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 from ai_agents.sales_support import SalesSupportAgent
 # Removed SQLAlchemy imports
 from database import get_db_connection, init_db
+from utils.event_manager import event_manager
 import uvicorn
+import asyncio
 import os
 import requests
 import glob
 import sqlite3
+import json
 from datetime import datetime
 from config import get_now_hanoi
 
@@ -54,35 +56,37 @@ import scheduler  # This imports the job definitions from scheduler.py
 
 def sync_reports_to_db():
     """One-time sync of Markdown files to Database."""
-    report_dir = "reports"
-    if not os.path.exists(report_dir):
-        return
-        
+    report_dirs = ["reports", "reports_v2"]
+    
     conn = get_db_connection()
     c = conn.cursor()
     
-    for filepath in glob.glob(os.path.join(report_dir, "*.md")):
-        filename = os.path.basename(filepath)
-        if filename == "README.md":
+    for report_dir in report_dirs:
+        if not os.path.exists(report_dir):
             continue
             
-        # Check if already exists in DB
-        c.execute("SELECT id FROM reports WHERE agent_name = ?", (filename,))
-        if c.fetchone():
-            continue
+        for filepath in glob.glob(os.path.join(report_dir, "*.md")):
+            filename = os.path.basename(filepath)
+            if filename == "README.md":
+                continue
+                
+            # Check if already exists in DB
+            c.execute("SELECT id FROM reports WHERE agent_name = ?", (filename,))
+            if c.fetchone():
+                continue
+                
+            with open(filepath, "r", encoding="utf-8") as f:
+                content = f.read()
+                
+            # Infer agent name and time from filename/metadata
+            # Using Hanoi time for modification time conversion
+            stat = os.stat(filepath)
+            from datetime import timezone, timedelta
+            hanoi_offset = timezone(timedelta(hours=7))
+            created_at = datetime.fromtimestamp(stat.st_mtime, hanoi_offset)
             
-        with open(filepath, "r", encoding="utf-8") as f:
-            content = f.read()
-            
-        # Infer agent name and time from filename/metadata
-        # Using Hanoi time for modification time conversion
-        stat = os.stat(filepath)
-        from datetime import timezone, timedelta
-        hanoi_offset = timezone(timedelta(hours=7))
-        created_at = datetime.fromtimestamp(stat.st_mtime, hanoi_offset)
-        
-        c.execute("INSERT INTO reports (agent_name, report_type, content, created_at) VALUES (?, ?, ?, ?)",
-                  (filename, "markdown", content, created_at))
+            c.execute("INSERT INTO reports (agent_name, report_type, content, created_at) VALUES (?, ?, ?, ?)",
+                      (filename, "markdown", content, created_at))
     
     conn.commit()
     conn.close()
@@ -404,6 +408,32 @@ async def list_videos():
         "count": len(video_files),
         "params": [f"https://mecobooks-ai.onrender.com/static/videos/{f}" for f in video_files]
     }
+
+@app.get("/api/events")
+async def event_stream(request: Request):
+    """
+    SSE endpoint for real-time progress updates.
+    """
+    async def stream():
+        # Optional: Send initial connected message
+        yield f"data: {json.dumps({'type': 'system', 'message': 'SSE Connected'})}\n\n"
+        
+        async for event in event_manager.subscribe():
+            # Check if client is still connected
+            if await request.is_disconnected():
+                break
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(stream(), media_type="text/event-stream")
+
+@app.get("/api/sync-reports")
+async def manual_sync_reports(username: str = Depends(get_current_username)):
+    """Manually trigger report sync from files to DB."""
+    try:
+        sync_reports_to_db()
+        return {"status": "success", "message": "Reports synced successfully from folders."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 @app.get("/api/reports")
 async def list_reports(username: str = Depends(get_current_username)):

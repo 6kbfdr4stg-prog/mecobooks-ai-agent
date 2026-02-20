@@ -8,6 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from chatbot import Chatbot
 from utils.logger import setup_logger
+from config import get_now_hanoi
 
 class MarketResearchAgent:
     def __init__(self):
@@ -21,8 +22,12 @@ class MarketResearchAgent:
             self.notifier = None
         # Use absolute path to ensure consistency between local/docker/manual execution
         self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.report_dir = os.path.join(self.project_root, "reports")
+        self.report_dir = os.path.join(self.project_root, "reports_v2")
         os.makedirs(self.report_dir, exist_ok=True)
+        
+        # Haravan Client for catalog audit
+        from haravan_client import HaravanClient
+        self.hrv = HaravanClient()
 
     def run(self):
         """
@@ -32,31 +37,52 @@ class MarketResearchAgent:
         self.logger.info("Starting Market Research")
 
         try:
-            # 1. Researching Trends
-            today = datetime.now().strftime("%Y-%m-%d")
+            # 1. Fetch Haravan Catalog for Matching
+            print("📦 [Market Research] Fetching Haravan catalog for auditing...")
+            hrv_products = self.hrv.get_all_products()
+            hrv_titles_set = {p['product_name'].lower().strip() for p in hrv_products}
+            
+            # 2. Researching Trends
+            now_hrv = get_now_hanoi()
+            today = now_hrv.strftime("%Y-%m-%d")
             
             prompt = f"""
-            Hôm nay là ngày {today}. Bạn là một chuyên gia nghiên cứu thị trường và tìm kiếm nguồn hàng (Sourcing) CHUYÊN NGHIỆP tại Việt Nam. 
+            Hôm nay là ngày {today}. Bạn là một chuyên gia nghiên cứu thị trường sách tại Việt Nam. 
             
             NHIỆM VỤ:
-            1. **Nghiên cứu Thị trường (Live)**: Tìm kiếm và liệt kê TỐI THIỂU 50 cuốn sách ĐANG HOT NHẤT, được nhiều người tìm mua tại Việt Nam NGAY LÚC NÀY. 
-               - Hãy tìm dữ liệu từ Tiki, Shopee, các bảng xếp hạng sách bán chạy.
-               - Chú ý cập nhật các tác phẩm kinh điển quay trở lại hoặc các đầu sách xu hướng mới nhất của năm {datetime.now().year}.
-               - BẮT BUỘC: Phải liệt kê ít nhất 50 cuốn sách khác nhau.
+            Tìm kiếm và liệt kê TỐI THIỂU 50 cuốn sách ĐANG HOT NHẤT (Bán chạy, được nhắc tới nhiều) tại Việt Nam tháng 2/2025.
             
-            2. **Bảng Tổng Hợp Duy Nhất (QUAN TRỌNG)**: 
-               - Chỉ được tạo DUY NHẤT 1 bảng Markdown cho 50 cuốn sách. 
-               - Bảng PHẢI có đúng 5 cột theo thứ tự: 
-                 | Thể loại | Tên sách | Phân loại chi tiết | Nguồn nhập đề xuất | Giá sỉ/Chiết khấu ước tính |
-               - Cột [Thể loại]: Phân loại lớn (vd: Văn học, Kinh tế, Kỹ năng sống, Tâm lý...).
-               - Cột [Phân loại chi tiết]: Thể loại nhỏ (vd: Tiểu thuyết, Tài chính, Giao tiếp...).
-               - Cột [Nguồn nhập đề xuất]: Tên NXB hoặc tổng kho cụ thể.
+            Bảng kết quả cần 4 cột:
+            | Thể loại | Tên sách | Nguồn nhập đề xuất | Giá tham khảo |
             
-            Yêu cầu báo cáo: Viết bằng tiếng Việt, định dạng Markdown chuyên nghiệp. 
-            BẮT BUỘC: Mỗi dòng trong bảng phải có đầy đủ 5 cột. KHÔNG chia thành nhiều bảng.
+            Yêu cầu: Viết bằng tiếng Việt, định dạng Markdown chuyên nghiệp.
             """
             
             report_content = self.bot.llm.generate_response(prompt)
+            
+            # 3. Audit matching in Python (Robust)
+            import re
+            lines = report_content.split('\n')
+            new_lines = []
+            for line in lines:
+                if '|' in line and not any(h in line for h in ['Thể loại', '---']):
+                    cols = [c.strip() for c in line.split('|')]
+                    if len(cols) >= 3:
+                        book_name = cols[2].lower().strip()
+                        status = "🆕 Cần nhập"
+                        # Simple substring match for robustness
+                        for hrv_t in hrv_titles_set:
+                            if book_name in hrv_t or hrv_t in book_name:
+                                status = "✅ Đã có"
+                                break
+                        line = line.rstrip('| ') + f" | {status} |"
+                elif 'Thể loại' in line:
+                    line = line.rstrip('| ') + " | Trạng thái |"
+                elif '---' in line:
+                    line = line.rstrip('| ') + " | :---: |"
+                new_lines.append(line)
+            
+            report_content = '\n'.join(new_lines)
             
             # 2. Save Report
             report_path = os.path.join(self.report_dir, "market_research_latest.md")
@@ -131,7 +157,7 @@ class MarketResearchAgent:
                 continue
                 
             data_rows.append({
-                "date": datetime.now().strftime("%Y-%m-%d"),
+                "date": get_now_hanoi().strftime("%Y-%m-%d"),
                 "category": category,
                 "book_name": book_name,
                 "supplier": supplier,
@@ -174,7 +200,7 @@ class MarketResearchAgent:
                 books_by_category[category] = []
             books_by_category[category].append(row)
             
-        current_date_str = datetime.datetime.now().strftime("%d/%m/%Y")
+        current_date_str = get_now_hanoi().strftime("%d/%m/%Y")
         title = f"Top 50+ Sách Hot Trend - Cập nhật ngày {current_date_str}"
         
         # HTML Header & Intro

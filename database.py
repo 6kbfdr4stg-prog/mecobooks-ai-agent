@@ -6,6 +6,8 @@ DATABASE_URL = "app.db"
 
 def get_db_connection():
     conn = sqlite3.connect(DATABASE_URL)
+    # Enable WAL mode for better concurrency
+    conn.execute('PRAGMA journal_mode=WAL;')
     conn.row_factory = sqlite3.Row
     return conn
 
