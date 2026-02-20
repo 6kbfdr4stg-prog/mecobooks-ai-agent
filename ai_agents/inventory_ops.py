@@ -28,7 +28,7 @@ class InventoryOpsAgent:
         print("📦 Starting Haravan Inventory Monitor Agent...")
         
         # 1. Fetch Haravan Inventory
-        h_variants = self.haravan.get_products(limit=250)
+        h_variants = self.haravan.get_all_products()
         h_inventory = {}
         for v in h_variants:
             raw_sku = v.get('sku')

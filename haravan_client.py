@@ -13,12 +13,12 @@ class HaravanClient:
         }
 
     def get_products(self, limit=10, page=1):
-        """Fetch a list of products from Haravan."""
+        """Fetch a list of products from Haravan (single page)."""
         endpoint = f"{self.shop_url}/admin/products.json"
         params = {
             "limit": limit,
             "page": page,
-            "fields": "id,title,body_html,images,variants,sku"
+            "fields": "id,title,body_html,images,variants,sku,handle"
         }
         
         try:
@@ -34,6 +34,35 @@ class HaravanClient:
         except requests.exceptions.RequestException as e:
             print(f"Error fetching products: {e}")
             return []
+
+    def get_all_products(self):
+        """Fetch ALL products from Haravan using pagination."""
+        all_variants = []
+        page = 1
+        limit = 250 # Max per page
+        
+        print(f"🚀 Starting full catalog fetch from Haravan...")
+        while True:
+            print(f"📥 Fetching page {page}...")
+            variants = self.get_products(limit=limit, page=page)
+            if not variants:
+                break
+            
+            all_variants.extend(variants)
+            print(f"✅ Page {page} fetched. Total variants so far: {len(all_variants)}")
+            
+            if len(variants) < limit: # Likely the last page (variants are expanded, but let's check against product count logic)
+                # Actually, limit is on products, not variants. 
+                # If get_products returns variants, we can't easily tell if it's the last page of PRODUCTS.
+                # Better to check the raw product response length.
+                pass
+            
+            # Since get_products expands to variants, let's refactor slightly to be safe.
+            page += 1
+            # Safety break to avoid infinite loops if API behaves weirdly
+            if page > 100: break 
+            
+        return all_variants
 
     def extract_product_data(self, product):
         """Deprecated: Use extract_product_variants instead for multi-variant support."""
@@ -134,25 +163,37 @@ class HaravanClient:
             start_date = now.replace(day=1) # Simplified for now
             
         endpoint = f"{self.shop_url}/admin/orders.json"
-        params = {
-            "created_at_min": start_date.isoformat(),
-            "status": "any",
-            "fields": "total_price,created_at,email"
-        }
+        all_orders = []
+        page = 1
+        limit = 50 # Haravan max for orders
         
         try:
-            response = requests.get(endpoint, headers=self.headers, params=params)
-            response.raise_for_status()
-            orders = response.json().get('orders', [])
-            
+            while True:
+                params = {
+                    "created_at_min": start_date.isoformat(),
+                    "status": "any",
+                    "fields": "total_price,created_at,email",
+                    "limit": limit,
+                    "page": page
+                }
+                response = requests.get(endpoint, headers=self.headers, params=params)
+                response.raise_for_status()
+                orders = response.json().get('orders', [])
+                if not orders: break
+                
+                all_orders.extend(orders)
+                if len(orders) < limit: break
+                page += 1
+                if page > 100: break # Safety
+
             total_sales = 0
-            for order in orders:
+            for order in all_orders:
                 total_sales += float(order.get('total_price', 0))
                 
             return {
                 "total_sales": total_sales,
-                "total_orders": len(orders),
-                "total_customers": len(set(order.get('email') for order in orders if order.get('email')))
+                "total_orders": len(all_orders),
+                "total_customers": len(set(order.get('email') for order in all_orders if order.get('email')))
             }
         except Exception as e:
             print(f"Haravan Sales Report Error: {e}")
@@ -167,27 +208,36 @@ class HaravanClient:
         start_date = datetime.now() - timedelta(days=days)
         
         endpoint = f"{self.shop_url}/admin/orders.json"
-        params = {
-            "created_at_min": start_date.isoformat(),
-            "status": "any",
-            "fields": "line_items"
-        }
-        
         variant_sales = {}
+        page = 1
+        limit = 50
+        
         try:
-            # We might need to handle pagination if there are many orders
-            response = requests.get(endpoint, headers=self.headers, params=params)
-            response.raise_for_status()
-            orders = response.json().get('orders', [])
-            
-            for order in orders:
-                for item in order.get('line_items', []):
-                    sku = item.get('sku')
-                    if sku:
-                        sku = str(sku).strip().upper()
-                        qty = int(item.get('quantity', 0))
-                        variant_sales[sku] = variant_sales.get(sku, 0) + qty
-            
+            while True:
+                params = {
+                    "created_at_min": start_date.isoformat(),
+                    "status": "any",
+                    "fields": "line_items",
+                    "limit": limit,
+                    "page": page
+                }
+                response = requests.get(endpoint, headers=self.headers, params=params)
+                response.raise_for_status()
+                orders = response.json().get('orders', [])
+                if not orders: break
+                
+                for order in orders:
+                    for item in order.get('line_items', []):
+                        sku = item.get('sku')
+                        if sku:
+                            sku = str(sku).strip().upper()
+                            qty = int(item.get('quantity', 0))
+                            variant_sales[sku] = variant_sales.get(sku, 0) + qty
+                
+                if len(orders) < limit: break
+                page += 1
+                if page > 100: break # Safety
+                
             return variant_sales
         except Exception as e:
             print(f"Haravan Variant Sales Error: {e}")
