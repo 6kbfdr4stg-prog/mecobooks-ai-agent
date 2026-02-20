@@ -474,10 +474,16 @@
                                 <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                                     📦 Smart Bundling (Combo Dọn Kho)
                                 </h2>
-                                <button onclick="loadBundleSuggestions()" id="btn-load-bundles"
-                                    class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-indigo-100 font-medium transition-all">
-                                    ✨ Quét cơ hội Combo
-                                </button>
+                                <div class="flex gap-2">
+                                    <button onclick="syncBundles()" id="btn-sync-bundles"
+                                        class="text-xs bg-orange-50 text-orange-600 px-3 py-1.5 rounded-lg hover:bg-orange-100 font-medium transition-all flex items-center gap-1">
+                                        🔄 Đồng bộ tồn kho
+                                    </button>
+                                    <button onclick="loadBundleSuggestions()" id="btn-load-bundles"
+                                        class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-indigo-100 font-medium transition-all">
+                                        ✨ Quét cơ hội Combo
+                                    </button>
+                                </div>
                             </div>
                             <p class="text-xs text-gray-400 mb-5">Ghép các cuốn sách tồn kho (Tier 2) cùng thể loại
                                 thành gói Combo để thanh lý nhanh gấp 2 lần.</p>
@@ -1312,6 +1318,26 @@
                 alert('Connection Error: ' + err.message);
                 btn.disabled = false;
                 btn.innerHTML = originalText;
+            }
+        }
+        async function syncBundles() {
+            const btn = document.getElementById('btn-sync-bundles');
+            btn.disabled = true;
+            btn.innerHTML = '🔄 Đang đồng bộ...';
+
+            try {
+                const response = await fetch('/api/price-strategy/sync-bundles', { method: 'POST' });
+                const data = await response.json();
+                if (data.error) {
+                    alert('Lỗi đồng bộ: ' + data.error);
+                } else {
+                    alert(`✅ Hoàn tất! Đã kiểm tra ${data.total} combo, cập nhật ${data.updated} combo.`);
+                }
+            } catch (err) {
+                alert('Lỗi kết nối: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🔄 Đồng bộ tồn kho';
             }
         }
 
