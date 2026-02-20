@@ -20,3 +20,4 @@ numpy
 psutil
 sqlalchemy
 diskcache
+beautifulsoup4

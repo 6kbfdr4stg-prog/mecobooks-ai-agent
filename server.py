@@ -713,6 +713,22 @@ async def generate_video_api(report_id: int, username: str = Depends(get_current
         traceback.print_exc()
         return {"status": "error", "message": str(e)}
 
+@app.get("/api/compare-price")
+async def compare_price(q: str, username: str = Depends(get_current_username)):
+    """
+    Scouts multiple platforms for book prices.
+    """
+    if not q:
+        return {"results": []}
+    
+    def run_scout():
+        from ai_agents.price_scout import PriceScoutAgent
+        agent = PriceScoutAgent()
+        return agent.compare(q)
+    
+    results = await asyncio.to_thread(run_scout)
+    return {"query": q, "results": results}
+
 @app.get("/verify", response_class=HTMLResponse)
 async def verification_dashboard(username: str = Depends(get_current_username)):
     """
