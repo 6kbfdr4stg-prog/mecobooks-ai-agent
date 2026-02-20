@@ -726,14 +726,14 @@ async def compare_price(q: str, username: str = Depends(get_current_username)):
     return {"query": q, "results": results}
 
 @app.get("/api/price-strategy/suggest")
-async def price_strategy_suggest(q: str, username: str = Depends(get_current_username)):
-    """Returns a Tier-1 and Tier-2 pricing suggestion for a given book title."""
+async def price_strategy_suggest(q: str, category: str = "default", username: str = Depends(get_current_username)):
+    """Returns a Tier-1, Tier-2 and scarcity pricing suggestion for a given book title."""
     if not q:
         return {"error": "Missing book title."}
     def run_suggest():
         from ai_agents.pricing_strategy import PricingStrategyAgent
         agent = PricingStrategyAgent()
-        return agent.suggest_prices(q)
+        return agent.suggest_prices(q, category=category)
     result = await asyncio.to_thread(run_suggest)
     return result
 

@@ -44,42 +44,153 @@ class PricingStrategyAgent:
             logger.warning(f"Could not fetch market price for '{book_title}': {e}")
         return 0.0
 
-    def suggest_prices(self, book_title: str) -> dict:
-        """
-        Given a book title, return a full pricing suggestion for Tier 1 and Tier 2.
-        """
-        logger.info(f"Calculating pricing strategy for: {book_title}")
-        market_price = self._get_market_price(book_title)
+    # Category floor prices (VND) for rare books when no market data exists
+    CATEGORY_FLOOR_PRICES = {
+        "van-hoc":     60_000,
+        "lich-su":     80_000,
+        "kinh-te":    120_000,
+        "chuyen-nganh": 200_000,
+        "khoa-hoc":   150_000,
+        "thieu-nhi":   40_000,
+        "self-help":   70_000,
+        "default":     60_000,
+    }
 
-        if market_price <= 0:
+    def _get_tiki_median_price(self, book_title: str) -> float:
+        """Fetch the median new-book market price from Tiki."""
+        try:
+            from ai_agents.price_scout import PriceScoutAgent
+            scout = PriceScoutAgent()
+            tiki_results = scout.scout_tiki(book_title)
+            prices = [r['price'] for r in tiki_results if r.get('price', 0) > 0]
+            if prices:
+                prices_sorted = sorted(prices)
+                return float(prices_sorted[len(prices_sorted) // 2])
+        except Exception as e:
+            logger.warning(f"Tiki price fetch failed: {e}")
+        return 0.0
+
+    def _get_oreka_median_price(self, book_title: str) -> float:
+        """Fetch the median used-book price from Oreka."""
+        try:
+            from ai_agents.price_scout import PriceScoutAgent
+            scout = PriceScoutAgent()
+            oreka_results = scout.scout_oreka(book_title)
+            prices = [r['price'] for r in oreka_results if r.get('price', 0) > 0]
+            if prices:
+                prices_sorted = sorted(prices)
+                return float(prices_sorted[len(prices_sorted) // 2])
+        except Exception as e:
+            logger.warning(f"Oreka price fetch failed: {e}")
+        return 0.0
+
+    def suggest_prices(self, book_title: str, category: str = "default") -> dict:
+        """
+        Full 3-case pricing suggestion:
+          Case 1 - Common book:    found on Tiki → Tier1=65%, Tier2=40%
+          Case 2 - Scarce book:   not on Tiki/Fahasa, found on Oreka → Oreka×90% / Oreka×110%
+          Case 3 - Ultra-rare:    not anywhere → category floor × premium
+        """
+        logger.info(f"Calculating pricing strategy for: '{book_title}' (category: {category})")
+
+        # --- Step 1: Try mainstream market (Tiki) ---
+        tiki_price = self._get_tiki_median_price(book_title)
+
+        if tiki_price > 0:
+            # CASE 1: Common book
+            tier1_price = round(tiki_price * self.TIER1_RATIO / 1000) * 1000
+            tier2_price = round(tiki_price * self.TIER2_RATIO / 1000) * 1000
             return {
                 "book_title": book_title,
-                "market_price": None,
-                "error": "Không tìm thấy giá thị trường. Vui lòng kiểm tra tên sách.",
-                "tier1": None,
-                "tier2": None,
+                "pricing_mode": "standard",
+                "pricing_mode_label": "📗 Sách phổ thông",
+                "market_price": int(tiki_price),
+                "market_source": "Tiki",
+                "tier1": {
+                    "price": int(tier1_price),
+                    "ratio_pct": int(self.TIER1_RATIO * 100),
+                    "strategy": f"Giá bán trong {self.TIER1_DAYS} ngày đầu",
+                    "label": "Giá Cạnh Tranh",
+                },
+                "tier2": {
+                    "price": int(tier2_price),
+                    "ratio_pct": int(self.TIER2_RATIO * 100),
+                    "strategy": "Giá thoát kho sau 30 ngày",
+                    "label": "Giá Thanh Lý",
+                },
+                "recommendation": (
+                    f"Đặt giá {int(tier1_price):,}đ trong {self.TIER1_DAYS} ngày đầu. "
+                    f"Nếu chưa bán được, hạ xuống {int(tier2_price):,}đ để thoát hàng."
+                )
             }
 
-        tier1_price = round(market_price * self.TIER1_RATIO / 1000) * 1000
-        tier2_price = round(market_price * self.TIER2_RATIO / 1000) * 1000
+        # --- Step 2: Book not on Tiki — check Oreka (used market only) ---
+        logger.info(f"  → Not found on Tiki. Checking Oreka for scarcity pricing...")
+        oreka_price = self._get_oreka_median_price(book_title)
+
+        if oreka_price > 0:
+            # CASE 2: Scarce book — price relative to Oreka used-book market
+            # Good condition: price slightly above competitors; liquidation: match or slightly below
+            tier1_price = round(oreka_price * 1.05 / 1000) * 1000   # Match/slight premium over Oreka
+            tier2_price = round(oreka_price * 0.85 / 1000) * 1000   # Undercut slightly to move it
+
+            return {
+                "book_title": book_title,
+                "pricing_mode": "scarcity",
+                "pricing_mode_label": "📙 Sách hiếm - Không còn trên Tiki/Fahasa",
+                "market_price": int(oreka_price),
+                "market_source": "Oreka (Sách cũ)",
+                "tier1": {
+                    "price": int(tier1_price),
+                    "ratio_pct": 105,
+                    "strategy": f"Định giá nhẹ trên Oreka vì sách hiếm",
+                    "label": "Giá Sách Hiếm",
+                },
+                "tier2": {
+                    "price": int(tier2_price),
+                    "ratio_pct": 85,
+                    "strategy": "Hạ giá thấp hơn Oreka để thoát nhanh",
+                    "label": "Giá Thoát Kho Hiếm",
+                },
+                "recommendation": (
+                    f"⚠️ Sách không còn trên Tiki/Fahasa — đây là sách HIẾM! "
+                    f"Trên Oreka đang bán ~{int(oreka_price):,}đ. "
+                    f"Định giá {int(tier1_price):,}đ (cao hơn 5%). "
+                    f"Nếu 30 ngày chưa bán, hạ xuống {int(tier2_price):,}đ."
+                ),
+                "scarcity_badge": True,
+            }
+
+        # --- Step 3: Not found anywhere — ultra-rare, use category floor ---
+        logger.info(f"  → Not found anywhere. Using category floor pricing.")
+        floor = self.CATEGORY_FLOOR_PRICES.get(category, self.CATEGORY_FLOOR_PRICES["default"])
+        tier1_price = round(floor * 1.5 / 1000) * 1000   # Premium for ultra-rare
+        tier2_price = round(floor * 1.0 / 1000) * 1000   # Base floor as liquidation price
 
         return {
             "book_title": book_title,
-            "market_price": int(market_price),
+            "pricing_mode": "ultra_rare",
+            "pricing_mode_label": "📕 Sách cực hiếm - Không có đối thủ cạnh tranh",
+            "market_price": None,
+            "market_source": "Category Floor (không có dữ liệu thị trường)",
             "tier1": {
                 "price": int(tier1_price),
-                "ratio_pct": int(self.TIER1_RATIO * 100),
-                "strategy": f"Giá bán trong {self.TIER1_DAYS} ngày đầu",
-                "label": "Giá Cạnh Tranh",
+                "ratio_pct": None,
+                "strategy": "Giá sách cực hiếm - tự định giá theo thể loại",
+                "label": "Giá Sách Độc Bản",
             },
             "tier2": {
                 "price": int(tier2_price),
-                "ratio_pct": int(self.TIER2_RATIO * 100),
-                "strategy": "Giá thoát kho sau 30 ngày",
-                "label": "Giá Thanh Lý",
+                "ratio_pct": None,
+                "strategy": "Giá sàn theo thể loại nếu cần thoát hàng",
+                "label": "Giá Sàn Thể Loại",
             },
-            "estimated_days_tier1": 30,
-            "recommendation": f"Đặt giá {int(tier1_price):,}đ trong {self.TIER1_DAYS} ngày đầu. Nếu chưa bán được, hạ xuống {int(tier2_price):,}đ để thoát hàng."
+            "recommendation": (
+                f"🔥 Sách cực hiếm — không tìm thấy trên bất kỳ sàn nào! "
+                f"Đề xuất định giá {int(tier1_price):,}đ dựa trên thể loại '{category}'. "
+                f"Thêm nhãn 'Sách Hiếm' vào mô tả để tăng giá trị cảm nhận."
+            ),
+            "scarcity_badge": True,
         }
 
     def find_stale_inventory(self, days: int = None) -> list:
