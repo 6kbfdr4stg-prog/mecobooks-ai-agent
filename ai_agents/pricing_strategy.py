@@ -28,6 +28,8 @@ class PricingStrategyAgent:
     TIER1_RATIO = 0.65  # 65% of new-book market price
     TIER2_RATIO = 0.40  # 40% of new-book market price
     TIER1_DAYS = 30     # After 30 days unsold, move to Tier 2
+    COGS_RATIO = 0.35   # 35% of List Price (compare_at_price)
+
 
     def __init__(self):
         from haravan_client import HaravanClient
@@ -412,14 +414,19 @@ class PricingStrategyAgent:
                         continue
 
                     price = float(variant.get('price', 0))
+                    # List price (compare_at_price) as basis for COGS (Phase 8)
+                    list_price = float(variant.get('compare_at_price') or variant.get('price') or 0)
+                    
                     tier2_items.append({
                         'id': p.get('id'),
                         'title': p.get('title'),
                         'price': price,
+                        'list_price': list_price,
                         'category': p.get('product_type', 'Khác'),
                         'vendor': p.get('vendor', 'Unknown'),
                         'image': p.get('images', [{}])[0].get('src', '') if p.get('images') else ''
                     })
+
 
             # Group by Vendor (Author)
             by_vendor = {}
@@ -449,6 +456,7 @@ class PricingStrategyAgent:
                     size = min(len(available), 20)
                     group = available[:size]
                     total_price = sum(it['price'] for it in group)
+                    total_list_price = sum(it['list_price'] for it in group)
                     
                     # N items = N% discount (Phase 7.8)
                     discount = size 
@@ -460,9 +468,11 @@ class PricingStrategyAgent:
                         'items_count': size,
                         'items': group,
                         'original_price': int(total_price),
+                        'total_list_price': int(total_list_price),
                         'suggested_price': int(bundle_price),
                         'discount_pct': discount
                     })
+
                     for it in group: seen_ids.add(it['id'])
                     available = available[size:]
 
@@ -474,6 +484,7 @@ class PricingStrategyAgent:
                     size = min(len(available), 20)
                     group = available[:size]
                     total_price = sum(it['price'] for it in group)
+                    total_list_price = sum(it['list_price'] for it in group)
                     
                     # N items = N% discount (Phase 7.8)
                     discount = size
@@ -485,16 +496,64 @@ class PricingStrategyAgent:
                         'items_count': size,
                         'items': group,
                         'original_price': int(total_price),
+                        'total_list_price': int(total_list_price),
                         'suggested_price': int(bundle_price),
                         'discount_pct': discount
                     })
+
                     for it in group: seen_ids.add(it['id'])
                     available = available[size:]
             
             return suggestions
         except Exception as e:
-            logger.error(f"Error finding bundles: {e}")
+            logger.error(f"Error finding bundle opportunities: {e}")
             return []
+
+    def auto_liquidate_bundles(self, limit=3):
+        """
+        AUTONOMOUS AGENT (Phase 8): 
+        Automatically creates and publishes top-performing bundles that meet profitability guardrails.
+        COGS is assumed at 35% of Total List Price.
+        """
+        logger.info("🤖 [AutoAgent] Starting autonomous bundling liquidation...")
+        suggestions = self.find_bundle_opportunities()
+        if not suggestions:
+            return {"status": "no_opportunities"}
+        
+        created = []
+        for s in suggestions:
+            if len(created) >= limit: break
+            
+            # Profitability Guardrail: 
+            # Bundle Price > (Total List Price * 0.35) + 15,000 Buffer (Shipping/Fees)
+            cogs_threshold = (s['total_list_price'] * self.COGS_RATIO) + 15000
+            
+            if s['suggested_price'] > cogs_threshold:
+                logger.info(f"  ✅ Opportunity passed profit check: {s['label']} ({s['suggested_price']} > {cogs_threshold})")
+                item_ids = [str(it['id']) for it in s['items']]
+                res = self.create_bundle(item_ids, s['label'], s['suggested_price'])
+                if 'id' in res:
+                    created.append({
+                        'id': res['id'],
+                        'title': s['label'],
+                        'price': s['suggested_price'],
+                        'profit_est': s['suggested_price'] - (s['total_list_price'] * self.COGS_RATIO)
+                    })
+            else:
+                logger.warning(f"  ❌ Opportunity rejected (low profit): {s['label']} ({s['suggested_price']} <= {cogs_threshold})")
+        
+        # Notify via Telegram if possible
+        if created:
+            try:
+                from ai_agents.telegram_client import send_telegram_message
+                msg = f"🤖 <b>[AutoAgent] Autonomous Bundling Report</b>\n\n"
+                msg += f"Created {len(created)} liquidation bundles:\n"
+                for c in created:
+                    msg += f"- {c['title']}: {c['price']:,}đ (Est. Profit: {c['profit_est']:,}đ)\n"
+                send_telegram_message(msg)
+            except: pass
+            
+        return {"status": "success", "created_count": len(created), "bundles": created}
 
     def create_bundle(self, item_ids: list, bundle_title: str, bundle_price: int) -> dict:
         """

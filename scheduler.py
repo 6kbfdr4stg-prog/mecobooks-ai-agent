@@ -111,6 +111,15 @@ def job_sync_bundles():
     except Exception as e:
         print(f"❌ Bundle Sync Failed: {e}")
 
+def job_auto_bundling():
+    print("🤖 [Scheduler] Running Autonomous Bundling Agent (Phase 8)...")
+    try:
+        agent = PricingStrategyAgent()
+        result = agent.auto_liquidate_bundles(limit=3)
+        print(f"✅ Auto-Bundling Done: {result.get('created_count', 0)} bundles created.")
+    except Exception as e:
+        print(f"❌ Auto-Bundling Failed: {e}")
+
 # Define Schedule
 # Production Schedule (Hanoi Time GMT+7 -> UTC)
 schedule.every().day.at("04:00").do(job_create_content) # 11:00 AM VN
@@ -119,6 +128,7 @@ schedule.every().day.at("13:00").do(job_create_content) # 20:00 PM VN
 schedule.every().day.at("03:00").do(job_email_marketing) # 10:00 AM VN
 
 schedule.every().monday.at("01:00").do(job_analyze_inventory) # 08:00 AM VN
+schedule.every().monday.at("02:00").do(job_auto_bundling) # 09:00 AM VN Monday (Phase 8)
 schedule.every().sunday.at("14:00").do(job_strategic_analysis) # 21:00 PM VN Sunday prep for week
 schedule.every(3).days.at("02:00").do(job_market_research) # 09:00 AM VN every 3 days
 schedule.every().day.at("01:00").do(job_daily_bi_report) # 08:00 AM VN
