@@ -497,7 +497,13 @@ class HaravanClient:
         }
         
         if images:
-            payload["product"]["images"] = [{"src": img_url} for img_url in images if img_url]
+            # Handle both URLs and base64 attachments
+            payload["product"]["images"] = []
+            for img in images:
+                if isinstance(img, dict) and "attachment" in img:
+                    payload["product"]["images"].append({"attachment": img["attachment"]})
+                else:
+                    payload["product"]["images"].append({"src": img})
 
         try:
             resp = requests.post(endpoint, headers=self.headers, json=payload)

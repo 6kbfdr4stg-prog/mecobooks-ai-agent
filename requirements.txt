@@ -21,3 +21,4 @@ psutil
 sqlalchemy
 diskcache
 beautifulsoup4
+Pillow

@@ -102,6 +102,14 @@ def job_apply_markdowns():
         print(f"✅ Markdown Done: {result['total_marked_down']} products updated.")
     except Exception as e:
         print(f"❌ Markdown Job Failed: {e}")
+def job_sync_bundles():
+    print("⏰ [Scheduler] Syncing Bundle Inventory with Components...")
+    try:
+        agent = PricingStrategyAgent()
+        result = agent.sync_bundle_inventory()
+        print(f"✅ Sync Done: {result.get('updated', 0)} bundles updated.")
+    except Exception as e:
+        print(f"❌ Bundle Sync Failed: {e}")
 
 # Define Schedule
 # Production Schedule (Hanoi Time GMT+7 -> UTC)
@@ -116,6 +124,7 @@ schedule.every(3).days.at("02:00").do(job_market_research) # 09:00 AM VN every 3
 schedule.every().day.at("01:00").do(job_daily_bi_report) # 08:00 AM VN
 schedule.every().hour.do(job_integrity_check) # Self-healing check every hour
 schedule.every().tuesday.at("01:00").do(job_apply_markdowns) # 08:00 AM VN Tuesday - Tier-2 markdowns
+schedule.every(15).minutes.do(job_sync_bundles) # Keep bundle inventory synced every 15 mins
 
 # Demo Schedule (Run immediately for first loop then every 10 mins?)
 # schedule.every(10).minutes.do(job_create_content)

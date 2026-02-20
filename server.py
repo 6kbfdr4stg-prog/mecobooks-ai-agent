@@ -788,6 +788,16 @@ async def price_strategy_create_bundle(item_ids: list, title: str, price: int, u
     result = await asyncio.to_thread(run_create)
     return result
 
+@app.post("/api/price-strategy/sync-bundles")
+async def price_strategy_sync_bundles(username: str = Depends(get_current_username)):
+    """Triggers a manual sync of bundle inventory."""
+    def run_sync():
+        from ai_agents.pricing_strategy import PricingStrategyAgent
+        agent = PricingStrategyAgent()
+        return agent.sync_bundle_inventory()
+    result = await asyncio.to_thread(run_sync)
+    return result
+
 @app.get("/verify", response_class=HTMLResponse)
 async def verification_dashboard(username: str = Depends(get_current_username)):
     """

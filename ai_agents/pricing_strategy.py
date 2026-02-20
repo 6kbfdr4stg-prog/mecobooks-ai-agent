@@ -2,6 +2,10 @@ import logging
 import sys
 import os
 import sqlite3
+import base64
+import io
+import requests
+from PIL import Image
 from datetime import datetime, timedelta
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib"))
@@ -31,21 +35,35 @@ class PricingStrategyAgent:
         self._init_history_db()
 
     def _init_history_db(self):
-        """Create the pricing_history table if it doesn't exist."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS pricing_history (
-                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                    product_id  TEXT    NOT NULL,
-                    title       TEXT    NOT NULL,
-                    from_tier   INTEGER,
-                    to_tier     INTEGER NOT NULL,
-                    old_price   INTEGER,
-                    new_price   INTEGER,
-                    transitioned_at TEXT NOT NULL
-                )
-            """)
-            conn.commit()
+        """Initializes the pricing history and bundle mappings database."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # History table
+                conn.execute('''
+                    CREATE TABLE IF NOT EXISTS pricing_history (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        product_id TEXT,
+                        title TEXT,
+                        from_tier INTEGER,
+                        to_tier INTEGER,
+                        old_price REAL,
+                        new_price REAL,
+                        transitioned_at TEXT
+                    )
+                ''')
+                # Bundle Mappings table (Phase 7.5)
+                conn.execute('''
+                    CREATE TABLE IF NOT EXISTS bundle_mappings (
+                        bundle_id TEXT PRIMARY KEY,
+                        bundle_title TEXT,
+                        component_ids TEXT, -- Commma separated IDs
+                        component_skus TEXT, -- Comma separated SKUs
+                        created_at TEXT
+                    )
+                ''')
+                conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to initialize database: {e}")
 
     def _log_tier_transition(self, product_id, title, from_tier, to_tier, old_price, new_price):
         """Record a tier change in the local pricing_history SQLite database."""
@@ -453,24 +471,134 @@ class PricingStrategyAgent:
 
             bundle_sku = f"BNDL-{'-'.join(skus[:2])}"[:50]
             
+            # Merge images into a collage (Phase 7.5)
+            merged_img_b64 = self._merge_bundle_images(images[:3])
+            bundle_images = images[:3]
+            if merged_img_b64:
+                bundle_images.insert(0, {"attachment": merged_img_b64})
+
             # Create product on Haravan
             new_prod = self.hrv.create_product(
                 title=bundle_title,
                 body_html=body_html,
                 price=str(bundle_price),
                 sku=bundle_sku,
-                images=images[:3], # Take first 3 images
+                images=bundle_images,
                 tags="mecobooks-bundle, mecobooks-tier-2"
             )
             
             if "error" in new_prod:
                 return new_prod
+            
+            bundle_id = str(new_prod.get('id'))
+            
+            # Store Mapping (Phase 7.5)
+            self._store_bundle_mapping(bundle_id, bundle_title, item_ids, skus)
                 
-            logger.info(f"  ✅ Bundle created: {bundle_title} (ID: {new_prod.get('id')})")
+            logger.info(f"  ✅ Bundle created and mapped: {bundle_title} (ID: {bundle_id})")
             return new_prod
             
         except Exception as e:
             logger.error(f"Failed to create bundle: {e}")
+            return {"error": str(e)}
+
+    def _merge_bundle_images(self, image_urls: list) -> str:
+        """Downloads images, merges them horizontally, and returns base64."""
+        if not image_urls: return None
+        logger.info(f"Generating bundle collage from {len(image_urls)} images...")
+        try:
+            imgs = []
+            for url in image_urls:
+                if not url: continue
+                resp = requests.get(url, timeout=10)
+                if resp.status_code == 200:
+                    img = Image.open(io.BytesIO(resp.content))
+                    imgs.append(img)
+            
+            if not imgs: return None
+
+            # Standardize height to 800px
+            std_h = 800
+            resized_imgs = []
+            total_w = 0
+            for img in imgs:
+                aspect = img.width / img.height
+                new_w = int(std_h * aspect)
+                resized_imgs.append(img.resize((new_w, std_h), Image.Resampling.LANCZOS))
+                total_w += new_w
+
+            # Create canvas
+            collage = Image.new('RGB', (total_w, std_h), (255, 255, 255))
+            cur_x = 0
+            for img in resized_imgs:
+                collage.paste(img, (cur_x, 0))
+                cur_x += img.width
+            
+            # Save to buffer
+            buf = io.BytesIO()
+            collage.save(buf, format='JPEG', quality=85)
+            return base64.b64encode(buf.getvalue()).decode('utf-8')
+
+        except Exception as e:
+            logger.error(f"Image merging failed: {e}")
+            return None
+
+    def _store_bundle_mapping(self, bundle_id: str, title: str, item_ids: list, skus: list):
+        """Saves bundle component relationship to SQLite."""
+        try:
+            from datetime import datetime
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "INSERT INTO bundle_mappings (bundle_id, bundle_title, component_ids, component_skus, created_at) VALUES (?, ?, ?, ?, ?)",
+                    (bundle_id, title, ",".join([str(i) for i in item_ids]), ",".join(skus), datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                )
+                conn.commit()
+        except Exception as e:
+            logger.error(f"Error storing bundle mapping: {e}")
+
+    def sync_bundle_inventory(self):
+        """
+        Polls Haravan for component stocks and updates Bundles accordingly.
+        If any component is 0, the bundle is set to 0.
+        """
+        logger.info("Syncing bundle inventory with component stocks...")
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                bundles = conn.execute("SELECT * FROM bundle_mappings").fetchall()
+            
+            if not bundles:
+                return {"message": "No bundles to sync."}
+
+            # Fetch all products once for efficiency
+            all_products = self.hrv.get_products_all()
+            stock_map = {} # SKU -> Quantity
+            for p in all_products:
+                for v in p.get('variants', []):
+                    stock_map[v.get('sku')] = v.get('inventory_quantity', 0)
+
+            stats = {"updated": 0, "total": len(bundles)}
+            for b in bundles:
+                skus = b['component_skus'].split(',')
+                # Check if all components have at least 1 in stock
+                is_available = all(stock_map.get(s, 0) > 0 for s in skus)
+                
+                # Get current bundle status (using brute force find for now)
+                bundle_prod = next((p for p in all_products if str(p.get('id')) == b['bundle_id']), None)
+                if not bundle_prod: continue
+
+                current_qty = bundle_prod.get('variants', [{}])[0].get('inventory_quantity', 0)
+                target_qty = 1 if is_available else 0
+
+                if current_qty != target_qty:
+                    variant_id = bundle_prod.get('variants', [{}])[0].get('id')
+                    logger.info(f"Syncing Bundle {b['bundle_title']}: {current_qty} -> {target_qty}")
+                    self.hrv.update_variant_price(variant_id, None, inventory_quantity=target_qty)
+                    stats["updated"] += 1
+            
+            return stats
+        except Exception as e:
+            logger.error(f"Inventory sync error: {e}")
             return {"error": str(e)}
 
 
