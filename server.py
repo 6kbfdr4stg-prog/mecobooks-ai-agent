@@ -768,6 +768,26 @@ async def price_strategy_history(limit: int = 50, username: str = Depends(get_cu
     except Exception as e:
         return {"history": [], "error": str(e)}
 
+@app.get("/api/price-strategy/bundle-suggestions")
+async def price_strategy_bundle_suggestions(username: str = Depends(get_current_username)):
+    """Finds bundling opportunities for Tier 2 products."""
+    def run_scan():
+        from ai_agents.pricing_strategy import PricingStrategyAgent
+        agent = PricingStrategyAgent()
+        return agent.find_bundle_opportunities()
+    result = await asyncio.to_thread(run_scan)
+    return {"suggestions": result}
+
+@app.post("/api/price-strategy/create-bundle")
+async def price_strategy_create_bundle(item_ids: list, title: str, price: int, username: str = Depends(get_current_username)):
+    """Creates a bundle product on Haravan."""
+    def run_create():
+        from ai_agents.pricing_strategy import PricingStrategyAgent
+        agent = PricingStrategyAgent()
+        return agent.create_bundle(item_ids, title, price)
+    result = await asyncio.to_thread(run_create)
+    return result
+
 @app.get("/verify", response_class=HTMLResponse)
 async def verification_dashboard(username: str = Depends(get_current_username)):
     """

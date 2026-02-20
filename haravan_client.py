@@ -468,6 +468,47 @@ class HaravanClient:
             print(f"Error tagging product {product_id} as {new_tag}: {e}")
             return False
 
+    def create_product(self, title: str, body_html: str, price: str, sku: str, images: list = None, tags: str = "") -> dict:
+        """
+        Creates a new product on Haravan.
+        Useful for creating automated bundles or special promotion items.
+        Returns the created product data.
+        """
+        endpoint = f"{self.shop_url}/admin/products.json"
+        
+        payload = {
+            "product": {
+                "title": title,
+                "body_html": body_html,
+                "vendor": "Mecobooks",
+                "product_type": "Combo",
+                "tags": tags,
+                "variants": [
+                    {
+                        "price": price,
+                        "sku": sku,
+                        "inventory_management": "haravan",
+                        "inventory_policy": "deny",
+                        "inventory_quantity": 1,
+                        "requires_shipping": True
+                    }
+                ]
+            }
+        }
+        
+        if images:
+            payload["product"]["images"] = [{"src": img_url} for img_url in images if img_url]
+
+        try:
+            resp = requests.post(endpoint, headers=self.headers, json=payload)
+            resp.raise_for_status()
+            return resp.json().get("product", {})
+        except Exception as e:
+            print(f"Error creating product '{title}': {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"Response: {e.response.text}")
+            return {"error": str(e)}
+
 if __name__ == "__main__":
     # Test the client
     client = HaravanClient()

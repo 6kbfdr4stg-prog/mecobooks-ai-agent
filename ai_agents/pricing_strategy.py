@@ -373,6 +373,106 @@ class PricingStrategyAgent:
         except Exception as e:
             logger.error(f"Failed to send markdown report: {e}")
 
+    def find_bundle_opportunities(self) -> list:
+        """
+        Groups Tier 2 products by category or vendor to find bundling opportunities.
+        Returns a list of suggested combos.
+        """
+        logger.info("Scanning for bundling opportunities (Tier 2 items)...")
+        try:
+            products = self.hrv.get_products_all()
+            tier2_items = []
+            
+            for p in products:
+                tags = [t.strip() for t in p.get('tags', '').split(',')]
+                if 'mecobooks-tier-2' in tags:
+                    # Get price from first variant
+                    price = float(p.get('variants', [{}])[0].get('price', 0))
+                    tier2_items.append({
+                        'id': p.get('id'),
+                        'title': p.get('title'),
+                        'price': price,
+                        'category': p.get('product_type', 'Khác'),
+                        'vendor': p.get('vendor', 'Unknown'),
+                        'image': p.get('images', [{}])[0].get('src', '') if p.get('images') else ''
+                    })
+
+            # Group by category
+            by_cat = {}
+            for item in tier2_items:
+                cat = item['category']
+                if cat not in by_cat: by_cat[cat] = []
+                by_cat[cat].append(item)
+
+            suggestions = []
+            for cat, items in by_cat.items():
+                if len(items) >= 2:
+                    # Suggest bundles in sets of 3 or 5
+                    total_price = sum(i['price'] for i in items[:3])
+                    bundle_price = round((total_price * 0.8) / 1000) * 1000 # 20% bundle discount
+                    
+                    suggestions.append({
+                        'type': 'category',
+                        'label': f"Combo Sách {cat}",
+                        'items_count': min(3, len(items)),
+                        'items': items[:3],
+                        'original_price': int(total_price),
+                        'suggested_price': int(bundle_price),
+                        'discount_pct': 20
+                    })
+            
+            return suggestions
+        except Exception as e:
+            logger.error(f"Error finding bundles: {e}")
+            return []
+
+    def create_bundle(self, item_ids: list, bundle_title: str, bundle_price: int) -> dict:
+        """
+        Creates a bundle product on Haravan from a list of product IDs.
+        """
+        logger.info(f"Creating bundle '{bundle_title}' with {len(item_ids)} items...")
+        try:
+            # Fetch item details for description
+            products = self.hrv.get_products_all()
+            selected = [p for p in products if str(p.get('id')) in [str(i) for i in item_ids]]
+            
+            if not selected:
+                return {"error": "No valid items found for bundle."}
+
+            # Construct Description
+            body_html = "<h3>Combo dọn kho giá sốc!</h3><p>Gói sản phẩm bao gồm:</p><ul>"
+            images = []
+            skus = []
+            for p in selected:
+                body_html += f"<li>{p.get('title')}</li>"
+                if p.get('images'):
+                    images.append(p['images'][0].get('src'))
+                sku = p.get('variants', [{}])[0].get('sku', 'NOSKU')
+                skus.append(sku)
+            body_html += "</ul><p><i>Sách hiếm, dọn kho thanh lý nhanh. Số lượng cực hạn!</i></p>"
+
+            bundle_sku = f"BNDL-{'-'.join(skus[:2])}"[:50]
+            
+            # Create product on Haravan
+            new_prod = self.hrv.create_product(
+                title=bundle_title,
+                body_html=body_html,
+                price=str(bundle_price),
+                sku=bundle_sku,
+                images=images[:3], # Take first 3 images
+                tags="mecobooks-bundle, mecobooks-tier-2"
+            )
+            
+            if "error" in new_prod:
+                return new_prod
+                
+            logger.info(f"  ✅ Bundle created: {bundle_title} (ID: {new_prod.get('id')})")
+            return new_prod
+            
+        except Exception as e:
+            logger.error(f"Failed to create bundle: {e}")
+            return {"error": str(e)}
+
 
 if __name__ == "__main__":
     agent = PricingStrategyAgent()

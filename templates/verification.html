@@ -468,6 +468,34 @@
                             </div>
                         </div>
 
+                        <!-- Smart Bundling Section (Phase 7) -->
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                    📦 Smart Bundling (Combo Dọn Kho)
+                                </h2>
+                                <button onclick="loadBundleSuggestions()" id="btn-load-bundles"
+                                    class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-indigo-100 font-medium transition-all">
+                                    ✨ Quét cơ hội Combo
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-400 mb-5">Ghép các cuốn sách tồn kho (Tier 2) cùng thể loại
+                                thành gói Combo để thanh lý nhanh gấp 2 lần.</p>
+
+                            <div id="bundle-suggestions-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Dynamic Bundle Cards -->
+                                <div
+                                    class="col-span-full py-10 text-center text-gray-300 border-2 border-dashed border-gray-100 rounded-xl">
+                                    Nhấn "Quét cơ hội" để tìm các bộ sách cùng thể loại đang tồn kho.
+                                </div>
+                            </div>
+
+                            <div id="bundle-loading" class="hidden py-10 text-center">
+                                <div class="animate-spin text-4xl mb-2">📦</div>
+                                <p class="text-sm text-gray-400">Đang phân tích kho hàng Tier 2...</p>
+                            </div>
+                        </div>
+
                         <!-- Price Scout Section (Phase 5) -->
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
                             <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -1202,6 +1230,90 @@
         document.getElementById('pricing-input')?.addEventListener('keypress', e => {
             if (e.key === 'Enter') calcPricing();
         });
+
+        async function loadBundleSuggestions() {
+            const list = document.getElementById('bundle-suggestions-list');
+            const loading = document.getElementById('bundle-loading');
+            const btn = document.getElementById('btn-load-bundles');
+
+            btn.disabled = true;
+            list.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/price-strategy/bundle-suggestions');
+                const data = await response.json();
+
+                if (!data.suggestions || data.suggestions.length === 0) {
+                    list.innerHTML = `<div class="col-span-full py-10 text-center text-gray-400">✅ Hiện chưa đủ sách cùng thể loại ở Tầng 2 để tạo Combo.</div>`;
+                } else {
+                    list.innerHTML = data.suggestions.map((s, idx) => `
+                        <div class="border border-gray-100 bg-gray-50 rounded-xl p-4 flex flex-col">
+                            <div class="flex justify-between items-start mb-3">
+                                <span class="bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold uppercase">Combo ${s.items_count} cuốn</span>
+                                <span class="text-xs text-gray-400">${s.label}</span>
+                            </div>
+                            <div class="flex -space-x-4 mb-4 overflow-hidden">
+                                ${s.items.map(item => `
+                                    <img src="${item.image || 'https://via.placeholder.com/100'}" class="w-12 h-16 object-cover border-2 border-white rounded shadow-sm" title="${item.title}">
+                                `).join('')}
+                            </div>
+                            <div class="mt-auto">
+                                <div class="flex justify-between items-end mb-3">
+                                    <div>
+                                        <div class="text-[10px] text-gray-400 line-through">${new Intl.NumberFormat('vi-VN').format(s.original_price)}đ</div>
+                                        <div class="text-sm font-bold text-indigo-600">${new Intl.NumberFormat('vi-VN').format(s.suggested_price)}đ</div>
+                                    </div>
+                                    <div class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold">-${s.discount_pct}% CLIẾT KHẤU</div>
+                                </div>
+                                <button onclick="createBundle(${JSON.stringify(s.items.map(i => i.id)).replace(/"/g, "'")}, '${s.label}', ${s.suggested_price}, this)" 
+                                    class="w-full py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm">
+                                    🚀 Phát hành Combo ngay
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                list.classList.remove('hidden');
+            } catch (err) {
+                list.innerHTML = `<div class="col-span-full text-red-400 text-sm">Lỗi: ${err.message}</div>`;
+                list.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+
+        async function createBundle(itemIds, title, price, btn) {
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="animate-spin">🌀</span> Đang tạo...';
+
+            try {
+                const response = await fetch('/api/price-strategy/create-bundle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_ids: itemIds, title: title, price: price })
+                });
+                const data = await response.json();
+
+                if (data.id) {
+                    btn.className = "w-full py-2 bg-green-600 text-white rounded-lg text-xs font-bold";
+                    btn.innerHTML = "✅ Đã tạo thành công!";
+                    setTimeout(() => {
+                        window.open(`https://${window.location.hostname}/admin/products/${data.id}`, '_blank');
+                    }, 1000);
+                } else {
+                    alert('Lỗi khi tạo combo: ' + (data.error || 'Unknown error'));
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            } catch (err) {
+                alert('Connection Error: ' + err.message);
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
 
         // --- 5. Price Scout Logic (Phase 5) ---
         async function scoutPrice() {
