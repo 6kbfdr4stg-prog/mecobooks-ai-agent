@@ -512,11 +512,33 @@ async def get_dashboard_stats(username: str = Depends(get_current_username)):
         def fetch_business_stats():
             from haravan_client import HaravanClient
             hrv = HaravanClient()
+            
+            # Month Summary
             sales_month = hrv.get_sales_report(period="month")
+            
+            # BI Data: Daily Revenue (Last 30 days)
+            daily_rev = hrv.get_daily_revenue(period="30days")
+            
+            # BI Data: Inventory ABC Distribution (Approximate via Analyst logic)
+            # To keep it fast, we could cache this or use a lightweight version
+            from ai_agents.inventory_analyst import InventoryAnalystAgent
+            analyst = InventoryAnalystAgent()
+            # Note: analyze_stock is expensive, maybe we should return a simplified version
+            # or use the cached version if available.
+            inventory_report = analyst.analyze_stock()
+            
             return {
                 "sales_total": sales_month.get("total_sales", 0),
                 "orders_count": sales_month.get("total_orders", 0),
-                "new_customers": sales_month.get("total_customers", 0)
+                "new_customers": sales_month.get("total_customers", 0),
+                "bi": {
+                    "daily_revenue": daily_rev,
+                    "inventory": {
+                        "a": len(inventory_report.get("group_a", [])),
+                        "b": len(inventory_report.get("group_b", [])),
+                        "c": len(inventory_report.get("group_c", []))
+                    }
+                }
             }
             
         business_stats = await asyncio.to_thread(fetch_business_stats)
@@ -547,6 +569,10 @@ async def run_agent_sync(agent_name: str, username: str = Depends(get_current_us
                 from ai_agents.inventory_analyst import InventoryAnalystAgent
                 agent = InventoryAnalystAgent()
                 result = agent.run()
+            elif name == "bi_analyst":
+                from ai_agents.bi_analyst import BIAnalystAgent
+                agent = BIAnalystAgent()
+                result = agent.run_daily_summary()
             elif name == "market_research":
                 from ai_agents.market_research import MarketResearchAgent
                 agent = MarketResearchAgent()

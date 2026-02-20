@@ -13,6 +13,15 @@ from ai_agents.email_marketing import EmailMarketingAgent
 from ai_agents.strategic_analyst import StrategicAnalystAgent
 from ai_agents.integrity_manager import IntegrityManagerAgent
 from ai_agents.market_research import MarketResearchAgent
+from ai_agents.bi_analyst import BIAnalystAgent
+
+def job_daily_bi_report():
+    print("⏰ [Scheduler] Running Daily Executive BI Report...")
+    try:
+        agent = BIAnalystAgent()
+        agent.run_daily_summary()
+    except Exception as e:
+        print(f"❌ BI Report Failed: {e}")
 
 def job_integrity_check():
     print("🛡️ [Scheduler] Running System Integrity Check...")
@@ -94,6 +103,7 @@ schedule.every().day.at("03:00").do(job_email_marketing) # 10:00 AM VN
 schedule.every().monday.at("01:00").do(job_analyze_inventory) # 08:00 AM VN
 schedule.every().sunday.at("14:00").do(job_strategic_analysis) # 21:00 PM VN Sunday prep for week
 schedule.every(3).days.at("02:00").do(job_market_research) # 09:00 AM VN every 3 days
+schedule.every().day.at("01:00").do(job_daily_bi_report) # 08:00 AM VN
 schedule.every().hour.do(job_integrity_check) # Self-healing check every hour
 
 # Demo Schedule (Run immediately for first loop then every 10 mins?)

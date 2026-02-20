@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+
 # Haravan API Configuration
 # Replace with your actual details
 
