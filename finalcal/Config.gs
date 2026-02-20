@@ -8,9 +8,14 @@
  */
 
 // ==================== API KEYS ====================
-// ==================== API KEYS ====================
-const GEMINI_API_KEY = "AIzaSyCysQS5gRxD9kFqIDerxYvXNjSHNe3sL8w"; 
-const TELEGRAM_TOKEN = "8292481641:AAHfTK91TWpvjVAb7j-YtK1LP-AVDkuOcuo";
+/**
+ * CẤU HÌNH API GEMINI - MECBOOKS
+ * QUAN TRỌNG: Không dán trực tiếp Key vào đây để tránh bị lộ.
+ * Nên sử dụng Project Properties của Apps Script.
+ */
+
+const GEMINI_API_KEY = ""; // Bỏ trống. Hãy dùng Settings trong Sheet để nhập Key.
+const TELEGRAM_TOKEN = ""; // Dán Token từ BotFather
 
 // ==================== GEMINI MODELS ====================
 const GEMINI_MODEL_FAST = "gemini-2.0-flash";

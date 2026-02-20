@@ -73,9 +73,9 @@ OUTPUT_COL = "Video_URL"         # Link YouTube (Final - do Apps Script ghi)
 DRIVE_COL  = "Video_Drive"       # Link Google Drive (Output của script này)
 
 # ---- GOOGLE TTS (dùng API key REST) ----
-# Bạn có thể đặt ENV trước: os.environ["GOOGLE_TTS_API_KEY"] = "..."
-# Nếu không có ENV, sẽ dùng giá trị mặc định bên dưới (Ông chủ đã cung cấp):
-GOOGLE_TTS_API_KEY = os.environ.get("GOOGLE_TTS_API_KEY", "AIzaSyBsXsKTO_g4tUVmKxNW1JPlOpLNGxGBIqE").strip()
+# Bạn cần đặt ENV: export GOOGLE_TTS_API_KEY="..."
+# Nếu không có ENV, script sẽ không thể tạo giọng nói.
+GOOGLE_TTS_API_KEY = os.environ.get("GOOGLE_TTS_API_KEY", "").strip()
 GOOGLE_TTS_ENDPOINT = "https://texttospeech.googleapis.com/v1/text:synthesize"
 
 # Giữ các biến Vbee để không phải đổi pipeline; ánh xạ sang Google TTS

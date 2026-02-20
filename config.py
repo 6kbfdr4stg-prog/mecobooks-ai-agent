@@ -11,24 +11,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Gemini API Configuration
-# Fallback hardcoded values (Known Good)
-FALLBACK_GEMINI_KEY = "AIzaSyCdDjbxja5Kp9107JNyd8x8xBYKWnPp2nU"
-FALLBACK_TTS_KEY = "AIzaSyBsXsKTO_g4tUVmKxNW1JPlOpLNGxGBIqE"
+# NO HARDCODED KEYS ALLOWED. All keys must be set in .env or system environment.
 
-def get_valid_key(env_name, fallback):
+def get_required_key(env_name):
     key = os.environ.get(env_name, "").strip()
+    if not key:
+        print(f"❌ Error: {env_name} is missing or empty. System limited.")
+        return ""
     if len(key) < 39:
-        if key:
-            print(f"⚠️ Warning: {env_name} looks truncated ({len(key)} chars). Using internal fallback.")
-        return fallback
+        print(f"⚠️ Warning: {env_name} looks invalid/truncated ({len(key)} chars).")
+        return ""
     return key
 
-GEMINI_API_KEY = get_valid_key("GEMINI_API_KEY", FALLBACK_GEMINI_KEY)
-GOOGLE_TTS_API_KEY = get_valid_key("GOOGLE_TTS_API_KEY", GEMINI_API_KEY)
-# Double check: if GOOGLE_TTS_API_KEY is still too short (e.g if GEMINI_API_KEY was the truncated one), 
-# use the specific TTS fallback
-if len(GOOGLE_TTS_API_KEY) < 39:
-    GOOGLE_TTS_API_KEY = FALLBACK_TTS_KEY
+GEMINI_API_KEY = get_required_key("GEMINI_API_KEY")
+GOOGLE_TTS_API_KEY = get_required_key("GOOGLE_TTS_API_KEY")
+
+# Fallback to Gemini Key for TTS if TTS key is missing
+if not GOOGLE_TTS_API_KEY and GEMINI_API_KEY:
+    GOOGLE_TTS_API_KEY = GEMINI_API_KEY
 
 
 # Video Generation Config

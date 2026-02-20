@@ -8,9 +8,12 @@
  */
 
 // ==================== API KEYS ====================
-// ==================== API KEYS ====================
-const GEMINI_API_KEY = "AIzaSyCtq3Bqky_uOu7d4qNsPJVbUE1yO5csHRI"; 
-const TELEGRAM_TOKEN = "8292481641:AAHfTK91TWpvjVAb7j-YtK1LP-AVDkuOcuo";
+// ====================/**
+ * CẤU HÌNH API GEMINI - MECBOOKS
+ */
+
+const GEMINI_API_KEY = ""; 
+const TELEGRAM_TOKEN = ""; 
 const GEMINI_MODEL_FAST = "gemini-2.0-flash";
 const GEMINI_MODEL_SMART = "gemini-1.5-pro"; // Revert to stable 1.5 Pro
 

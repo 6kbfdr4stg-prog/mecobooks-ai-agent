@@ -29,7 +29,7 @@ Chatbot Telegram quản lý tài chính cá nhân sử dụng **Gemini API** + *
 1. Truy cập: https://aistudio.google.com/apikey
 2. Bấm **"Get API Key"** → **"Create API Key"**
 3. Chọn project hoặc tạo mới
-4. **Lưu lại API Key** (dạng: `AIzaSy...`)
+4. **Lưu lại API Key** (dạng: `AIzaSy...`). **TUYỆT ĐỐI KHÔNG CHIA SẺ KEY NÀY**.
 
 ---
 
