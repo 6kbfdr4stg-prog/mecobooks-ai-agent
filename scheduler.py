@@ -15,6 +15,7 @@ from ai_agents.integrity_manager import IntegrityManagerAgent
 from ai_agents.market_research import MarketResearchAgent
 from ai_agents.bi_analyst import BIAnalystAgent
 from ai_agents.pricing_strategy import PricingStrategyAgent
+from ai_agents.auto_debug import AutoDebugAgent
 
 def job_daily_bi_report():
     print("⏰ [Scheduler] Running Daily Executive BI Report...")
@@ -101,8 +102,19 @@ def job_auto_bundling():
     except Exception as e:
         print(f"❌ Auto-Bundling Failed: {e}")
 
+
+def job_auto_debug():
+    print("🔍 [Scheduler] Running AutoDebug codebase scan...")
+    try:
+        agent = AutoDebugAgent()
+        result = agent.run()
+        print(f"✅ AutoDebug Done: {result['errors']} errors, {result['warnings']} warnings")
+    except Exception as e:
+        print(f"❌ AutoDebug Failed: {e}")
+
 # Define Schedule
 # Production Schedule (Hanoi Time GMT+7 -> UTC)
+schedule.every().day.at("22:00").do(job_auto_debug)  # 05:00 AM VN (daily code health scan)
 schedule.every().day.at("04:00").do(job_create_content) # 11:00 AM VN
 schedule.every().day.at("13:00").do(job_create_content) # 20:00 PM VN
 

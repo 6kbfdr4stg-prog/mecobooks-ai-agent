@@ -573,6 +573,11 @@ async def run_agent_sync(agent_name: str, username: str = Depends(get_current_us
                         result = f.read()
                 else:
                     result = "Report generation failed."
+            elif name == "auto_debug":
+                from ai_agents.auto_debug import AutoDebugAgent
+                agent = AutoDebugAgent()
+                run_result = agent.run()
+                result = run_result.get('output', 'AutoDebug scan complete.')
             else:
                  raise HTTPException(status_code=400, detail="Unknown agent")
 

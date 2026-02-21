@@ -690,6 +690,30 @@
                             </div>
                         </div>
 
+                        <!-- Auto Debug Agent -->
+                        <div
+                            class="card bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl shadow-indigo-100/20 border border-white/60 p-5 hover:border-indigo-400 hover:shadow-indigo-200/40 transition-all duration-300 group hover:-translate-y-1">
+                            <div class="flex justify-between items-start mb-3">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-xl">
+                                    🔍</div>
+                                <span class="badge bg-green-50 text-green-700 border border-green-100">Ready</span>
+                            </div>
+                            <h3 class="font-bold text-gray-800 mb-1 group-hover:text-indigo-600 transition-colors">
+                                Auto-Debug Agent</h3>
+                            <p class="text-xs text-gray-500 mb-3 leading-relaxed">Quét mã lỗi, check API, báo qua
+                                Telegram
+                            </p>
+
+                            <button onclick="runAgent('auto_debug')" id="btn-auto_debug"
+                                class="w-full btn bg-gray-900 text-white px-2 py-2 rounded-xl hover:bg-black text-xs sm:text-sm font-semibold flex justify-center gap-1.5 transition-all">
+                                <span>▶</span><span class="hidden sm:inline">Run</span> Agent
+                            </button>
+                            <div id="res-auto_debug"
+                                class="mt-3 hidden p-3 bg-gray-50 rounded-lg text-xs overflow-auto max-h-40 report-content border border-gray-100">
+                            </div>
+                        </div>
+
                         <!-- BI Analyst Agent (BI UPGRADE) -->
                         <div
                             class="card bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl shadow-emerald-100/20 border border-emerald-200 p-5 hover:border-emerald-400 hover:shadow-emerald-200/40 transition-all duration-300 group hover:-translate-y-1 ring-2 ring-emerald-50 ring-offset-2">
