@@ -371,7 +371,7 @@ async def get_scheduler_status(username: str = Depends(get_current_username)):
                 "job": getattr(job.job_func, "__name__", str(job.job_func)),
                 "next_run": str(job.next_run),
                 "last_run": str(job.last_run),
-                "period": str(job.period),
+                "interval": str(job.interval),
                 "unit": str(job.unit)
             })
         return {"jobs": jobs}
