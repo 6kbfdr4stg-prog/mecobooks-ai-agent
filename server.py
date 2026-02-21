@@ -364,16 +364,20 @@ async def get_scheduler_status(username: str = Depends(get_current_username)):
     """
     Returns the list of pending jobs in the scheduler.
     """
-    jobs = []
-    for job in schedule.jobs:
-        jobs.append({
-            "job": str(job.job_func.__name__),
-            "next_run": str(job.next_run),
-            "last_run": str(job.last_run),
-            "period": str(job.period),
-            "unit": str(job.unit)
-        })
-    return {"jobs": jobs}
+    try:
+        jobs = []
+        for job in schedule.jobs:
+            jobs.append({
+                "job": getattr(job.job_func, "__name__", str(job.job_func)),
+                "next_run": str(job.next_run),
+                "last_run": str(job.last_run),
+                "period": str(job.period),
+                "unit": str(job.unit)
+            })
+        return {"jobs": jobs}
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "traceback": traceback.format_exc()}
 
 @app.get("/debug/videos")
 async def list_videos():
