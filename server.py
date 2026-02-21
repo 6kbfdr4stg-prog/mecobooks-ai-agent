@@ -53,7 +53,22 @@ app.add_middleware(
 import threading
 import time
 import schedule
-import scheduler  # This imports the job definitions from scheduler.py
+# Import job definitions from scheduler.py to register them with the global 'schedule' object
+import scheduler 
+
+def run_scheduler_background():
+    """Single background thread for the scheduler."""
+    print("🚀 [System] Scheduler thread launched. Monitoring jobs...")
+    while True:
+        try:
+            schedule.run_pending()
+        except Exception as e:
+            print(f"❌ [Scheduler Error] {e}")
+            try:
+                from ai_agents.telegram_client import send_telegram_message
+                send_telegram_message(f"🚨 <b>Scheduler Error</b>\n\n<code>{str(e)}</code>")
+            except: pass
+        time.sleep(60)
 
 def sync_reports_to_db():
     """One-time sync of Markdown files to Database."""
@@ -92,28 +107,20 @@ def sync_reports_to_db():
     conn.commit()
     conn.close()
 
-def run_scheduler_loop():
-    print("⏳ [Background] Scheduler loop started...")
-    while True:
-        try:
-            schedule.run_pending()
-        except Exception as e:
-            print(f"❌ [Background] Scheduler Error: {e}")
-        time.sleep(60)
 
 @app.on_event("startup")
-async def start_scheduler():
-    # Sync Reports
+async def startup_event():
+    # 1. Sync Reports
     try:
         sync_reports_to_db()
         print("✅ [System] Reports synced to Database.")
     except Exception as e:
         print(f"⚠️ [System] Report sync failed: {e}")
 
-    # Start the scheduler in a separate daemon thread
-    t = threading.Thread(target=run_scheduler_loop, daemon=True)
+    # 2. Start the scheduler in a separate daemon thread
+    t = threading.Thread(target=run_scheduler_background, daemon=True)
     t.start()
-    print("✅ [System] Scheduler thread launched.")
+    print("✅ [System] Background monitoring started.")
 # ----------------------------------------
 
 from fastapi.staticfiles import StaticFiles
@@ -342,73 +349,6 @@ async def get_feed():
     except Exception as e:
         print(f"Feed Generation Error: {e}")
         return Response(content=f"<error>{str(e)}</error>", media_type="application/xml", status_code=500)
-
-# ... existing imports ...
-import threading
-import time
-import schedule
-from scheduler import (
-    job_create_content, 
-    job_email_marketing, 
-    job_analyze_inventory, 
-    job_auto_bundling,
-    job_market_research,
-    job_daily_bi_report,
-    job_integrity_check,
-    job_apply_markdowns,
-    job_sync_bundles
-)
-
-# Define Schedule inside server or import from scheduler.py
-# If we import from scheduler.py, we need to make sure scheduler.py defines the schedule but doesn't run the loop immediately on import.
-# Let's just redefine the schedule here or rely on scheduler.py's definitions if it was a module.
-# Actually, scheduler.py has a 'while True' at the bottom. We should remove that or wrap it.
-# Ideally, we should refactor scheduler.py to be importable.
-# check scheduler.py content again. It has `while True` at the end. Importing it might block.
-# Let's adding a check in scheduler.py first, but since we can't edit two files in one step easily if we want to be safe,
-# I will just replicate the schedule logic here for simplicity and reliability in this context, 
-# OR I will edit scheduler.py to only run if __name__ == "__main__".
-
-# Strategy: I'll edit scheduler.py next. For now, let's prepare server.py to IMPORT it.
-# Actually, if I modify scheduler.py to not block on import, I can import it here.
-
-def run_scheduler():
-    # Production Schedule (UTC Time)
-    # 01:00 UTC = 08:00 AM VN
-    schedule.every().day.at("01:00").do(job_daily_bi_report)
-    schedule.every().day.at("01:00").do(job_auto_bundling)
-    
-    # 04:00 UTC = 11:00 AM VN
-    schedule.every().day.at("04:00").do(job_create_content)
-    
-    # 13:00 UTC = 08:00 PM VN
-    schedule.every().day.at("13:00").do(job_create_content)
-    
-    # Other recurring tasks
-    schedule.every().monday.at("01:30").do(job_analyze_inventory)
-    schedule.every(3).days.at("02:00").do(job_market_research)
-    schedule.every(15).minutes.do(job_sync_bundles)
-    schedule.every().hour.do(job_integrity_check)
-    schedule.every().tuesday.at("02:00").do(job_apply_markdowns)
-    
-    print("🚀 [Server] Scheduler thread started with all Phase 9 jobs...")
-    while True:
-        try:
-            schedule.run_pending()
-        except Exception as e:
-            print(f"❌ [Scheduler Error] {e}")
-            try:
-                from ai_agents.telegram_client import send_telegram_message
-                send_telegram_message(f"🚨 <b>Scheduler Error</b>\n\n<code>{str(e)}</code>")
-            except: pass
-        time.sleep(60)
-    
-@app.on_event("startup")
-def startup_event():
-    # Start scheduler in a separate thread
-    t = threading.Thread(target=run_scheduler, daemon=True)
-    t.start()
-    print("🚀 SERVER RESTARTED WITH FIX v3 - VERIFICATION DASHBOARD")
 
 @app.post("/debug/trigger-content")
 async def trigger_content(background_tasks: BackgroundTasks):
