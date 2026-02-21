@@ -16,7 +16,9 @@ from ai_agents.market_research import MarketResearchAgent
 from ai_agents.bi_analyst import BIAnalystAgent
 from ai_agents.pricing_strategy import PricingStrategyAgent
 from ai_agents.auto_debug import AutoDebugAgent
+from ai_agents.overseer import log_agent_execution
 
+@log_agent_execution("bi_analyst")
 def job_daily_bi_report():
     print("⏰ [Scheduler] Running Daily Executive BI Report...")
     try:
@@ -25,6 +27,7 @@ def job_daily_bi_report():
     except Exception as e:
         print(f"❌ BI Report Failed: {e}")
 
+@log_agent_execution("integrity_manager")
 def job_integrity_check():
     print("🛡️ [Scheduler] Running System Integrity Check...")
     try:
@@ -33,6 +36,7 @@ def job_integrity_check():
     except Exception as e:
         print(f"❌ Integrity Check Failed: {e}")
 
+@log_agent_execution("strategic_analyst")
 def job_strategic_analysis():
     print("⏰ [Scheduler] Triggering Strategic Analysis (Agent 4)...")
     try:
@@ -41,6 +45,7 @@ def job_strategic_analysis():
     except Exception as e:
         print(f"❌ Strategic Analysis Failed: {e}")
 
+@log_agent_execution("email_marketing")
 def job_email_marketing():
     print("⏰ [Scheduler] Triggering Daily Email Marketing...")
     try:
@@ -49,6 +54,7 @@ def job_email_marketing():
     except Exception as e:
         print(f"❌ Email Marketing Failed: {e}")
 
+@log_agent_execution("content_creator")
 def job_create_content():
     print("⏰ [Scheduler] Triggering Daily Content Creation (Agent 1 & 2)...")
     try:
@@ -57,6 +63,7 @@ def job_create_content():
     except Exception as e:
         print(f"❌ Content Generation Failed: {e}")
 
+@log_agent_execution("inventory_analyst")
 def job_analyze_inventory():
     print("⏰ [Scheduler] Triggering Weekly Inventory Analysis (Agent 3)...")
     try:
@@ -68,6 +75,7 @@ def job_analyze_inventory():
     except Exception as e:
         print(f"❌ Inventory Analysis Failed: {e}")
 
+@log_agent_execution("market_research")
 def job_market_research():
     print("⏰ [Scheduler] Running 3-day Market Research...")
     try:
@@ -76,6 +84,7 @@ def job_market_research():
     except Exception as e:
         print(f"❌ Market Research Failed: {e}")
 
+@log_agent_execution("pricing_strategy")
 def job_apply_markdowns():
     print("⏰ [Scheduler] Running Weekly Tier-2 Markdown Check...")
     try:
@@ -84,6 +93,7 @@ def job_apply_markdowns():
         print(f"✅ Markdown Done: {result['total_marked_down']} products updated.")
     except Exception as e:
         print(f"❌ Markdown Job Failed: {e}")
+@log_agent_execution("bundle_sync")
 def job_sync_bundles():
     print("⏰ [Scheduler] Syncing Bundle Inventory with Components...")
     try:
@@ -93,6 +103,7 @@ def job_sync_bundles():
     except Exception as e:
         print(f"❌ Bundle Sync Failed: {e}")
 
+@log_agent_execution("pricing_strategy")
 def job_auto_bundling():
     print("🤖 [Scheduler] Running Autonomous Bundling Agent (Phase 8)...")
     try:
@@ -103,6 +114,7 @@ def job_auto_bundling():
         print(f"❌ Auto-Bundling Failed: {e}")
 
 
+@log_agent_execution("auto_debug")
 def job_auto_debug():
     print("🔍 [Scheduler] Running AutoDebug codebase scan...")
     try:
@@ -111,6 +123,24 @@ def job_auto_debug():
         print(f"✅ AutoDebug Done: {result['errors']} errors, {result['warnings']} warnings")
     except Exception as e:
         print(f"❌ AutoDebug Failed: {e}")
+
+def job_overseer_heartbeat():
+    print("💓 [Scheduler] Running Overseer Heartbeat Monitor...")
+    try:
+        from ai_agents.overseer import OverseerAgent
+        agent = OverseerAgent()
+        agent.check_heartbeats()
+    except Exception as e:
+        print(f"❌ Overseer Heartbeat Failed: {e}")
+
+def job_overseer_daily_digest():
+    print("📋 [Scheduler] Running Overseer Master Daily Digest...")
+    try:
+        from ai_agents.overseer import OverseerAgent
+        agent = OverseerAgent()
+        agent.generate_daily_digest()
+    except Exception as e:
+        print(f"❌ Overseer Daily Digest Failed: {e}")
 
 # Define Schedule
 # Production Schedule (Hanoi Time GMT+7 -> UTC)
@@ -126,6 +156,8 @@ schedule.every().sunday.at("14:00").do(job_strategic_analysis) # 21:00 PM VN Sun
 schedule.every(3).days.at("02:00").do(job_market_research) # 09:00 AM VN every 3 days
 schedule.every().day.at("01:00").do(job_daily_bi_report) # 08:00 AM VN
 schedule.every().hour.do(job_integrity_check) # Self-healing check every hour
+schedule.every(2).hours.do(job_overseer_heartbeat) # Check if any agent missed their window every 2 hours
+schedule.every().day.at("14:00").do(job_overseer_daily_digest) # 21:00 PM VN Daily Digest of all agent activity
 schedule.every().tuesday.at("01:00").do(job_apply_markdowns) # 08:00 AM VN Tuesday - Tier-2 markdowns
 schedule.every(15).minutes.do(job_sync_bundles) # Keep bundle inventory synced every 15 mins
 

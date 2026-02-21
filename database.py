@@ -23,6 +23,16 @@ def init_db():
             created_at TIMESTAMP
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS agent_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            agent_name TEXT,
+            status TEXT,
+            message TEXT,
+            duration_seconds REAL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     conn.commit()
     conn.close()
 

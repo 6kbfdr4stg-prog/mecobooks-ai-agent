@@ -465,6 +465,25 @@ async def get_report_by_id(report_id: str, username: str = Depends(get_current_u
         "content": report["content"]
     }
 
+@app.get("/api/agents/status")
+async def get_agents_status(username: str = Depends(get_current_username)):
+    """Return the most recent execution logs for all AI agents."""
+    try:
+        from ai_agents.overseer import OverseerAgent
+        overseer = OverseerAgent()
+        logs = overseer._get_agent_status(limit=50)
+        
+        # Group by agent, keeping only the most recent one for each
+        latest_status = {}
+        for row in logs:
+            name = row['agent_name']
+            if name not in latest_status:
+                latest_status[name] = row
+                
+        return {"status": "success", "agents": latest_status}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 @app.get("/api/stats")
 async def get_dashboard_stats(username: str = Depends(get_current_username)):
     """

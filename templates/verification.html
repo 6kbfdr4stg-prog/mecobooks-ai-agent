@@ -606,7 +606,13 @@
                                 <div
                                     class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center text-xl">
                                     ✍️</div>
-                                <span class="badge bg-green-50 text-green-700 border border-green-100">Ready</span>
+                                <div class="text-right flex flex-col items-end">
+                                    <span id="badge-content_creator"
+                                        class="badge bg-gray-50 text-gray-500 border border-gray-200 shadow-sm text-[10px] px-1.5 py-0.5"
+                                        style="border-radius: 6px;">Tiếp nhận...</span>
+                                    <span id="time-content_creator"
+                                        class="text-[9px] text-gray-400 mt-1 font-medium tracking-wide">--</span>
+                                </div>
                             </div>
                             <h3 class="font-bold text-gray-800 mb-1 group-hover:text-purple-600 transition-colors">
                                 Content Creator</h3>
@@ -628,7 +634,13 @@
                             <div class="flex justify-between items-start mb-3">
                                 <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-xl">
                                     📈</div>
-                                <span class="badge bg-green-50 text-green-700 border border-green-100">Ready</span>
+                                <div class="text-right flex flex-col items-end">
+                                    <span id="badge-market_research"
+                                        class="badge bg-gray-50 text-gray-500 border border-gray-200 shadow-sm text-[10px] px-1.5 py-0.5"
+                                        style="border-radius: 6px;">Tiếp nhận...</span>
+                                    <span id="time-market_research"
+                                        class="text-[9px] text-gray-400 mt-1 font-medium tracking-wide">--</span>
+                                </div>
                             </div>
                             <h3 class="font-bold text-gray-800 mb-1 group-hover:text-blue-600 transition-colors">
                                 Market
@@ -652,7 +664,13 @@
                                 <div
                                     class="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center text-xl">
                                     📊</div>
-                                <span class="badge bg-green-50 text-green-700 border border-green-100">Ready</span>
+                                <div class="text-right flex flex-col items-end">
+                                    <span id="badge-inventory_analyst"
+                                        class="badge bg-gray-50 text-gray-500 border border-gray-200 shadow-sm text-[10px] px-1.5 py-0.5"
+                                        style="border-radius: 6px;">Tiếp nhận...</span>
+                                    <span id="time-inventory_analyst"
+                                        class="text-[9px] text-gray-400 mt-1 font-medium tracking-wide">--</span>
+                                </div>
                             </div>
                             <h3 class="font-bold text-gray-800 mb-1 group-hover:text-yellow-600 transition-colors">
                                 Phân tích Tồn kho (ABC)</h3>
@@ -674,7 +692,13 @@
                             <div class="flex justify-between items-start mb-3">
                                 <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center text-xl">
                                     🛡️</div>
-                                <span class="badge bg-green-50 text-green-700 border border-green-100">Ready</span>
+                                <div class="text-right flex flex-col items-end">
+                                    <span id="badge-integrity_manager"
+                                        class="badge bg-gray-50 text-gray-500 border border-gray-200 shadow-sm text-[10px] px-1.5 py-0.5"
+                                        style="border-radius: 6px;">Tiếp nhận...</span>
+                                    <span id="time-integrity_manager"
+                                        class="text-[9px] text-gray-400 mt-1 font-medium tracking-wide">--</span>
+                                </div>
                             </div>
                             <h3 class="font-bold text-gray-800 mb-1 group-hover:text-red-600 transition-colors">
                                 Integrity Manager</h3>
@@ -697,7 +721,13 @@
                                 <div
                                     class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-xl">
                                     🔍</div>
-                                <span class="badge bg-green-50 text-green-700 border border-green-100">Ready</span>
+                                <div class="text-right flex flex-col items-end">
+                                    <span id="badge-auto_debug"
+                                        class="badge bg-gray-50 text-gray-500 border border-gray-200 shadow-sm text-[10px] px-1.5 py-0.5"
+                                        style="border-radius: 6px;">Tiếp nhận...</span>
+                                    <span id="time-auto_debug"
+                                        class="text-[9px] text-gray-400 mt-1 font-medium tracking-wide">--</span>
+                                </div>
                             </div>
                             <h3 class="font-bold text-gray-800 mb-1 group-hover:text-indigo-600 transition-colors">
                                 Auto-Debug Agent</h3>
@@ -721,7 +751,13 @@
                                 <div
                                     class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-xl">
                                     📈</div>
-                                <span class="badge bg-emerald-50 text-emerald-700 border border-emerald-100">NEW</span>
+                                <div class="text-right flex flex-col items-end">
+                                    <span id="badge-bi_analyst"
+                                        class="badge bg-gray-50 text-gray-500 border border-gray-200 shadow-sm text-[10px] px-1.5 py-0.5"
+                                        style="border-radius: 6px;">Tiếp nhận...</span>
+                                    <span id="time-bi_analyst"
+                                        class="text-[9px] text-gray-400 mt-1 font-medium tracking-wide">--</span>
+                                </div>
                             </div>
                             <h3 class="font-bold text-emerald-800 mb-1">BI Analyst Agent</h3>
                             <p class="text-xs text-gray-500 mb-4 h-8 overflow-hidden">Tổng hợp doanh thu & Gửi
@@ -827,6 +863,53 @@
                 sidebar.classList.add('-translate-x-full');
             }
         });
+
+        // --- 0. Overseer Live Status Fetcher ---
+        async function fetchAgentsStatus() {
+            try {
+                const res = await fetch('/api/agents/status');
+                const data = await res.json();
+                if (data.status === 'success') {
+                    for (const [agent, log] of Object.entries(data.agents)) {
+                        const badgeObj = document.getElementById('badge-' + agent);
+                        const timeObj = document.getElementById('time-' + agent);
+                        if (badgeObj && timeObj) {
+                            if (log.status === 'SUCCESS') {
+                                badgeObj.className = 'badge bg-green-50 text-green-600 border border-green-200 shadow-sm text-[10px] px-1.5 py-0.5';
+                                badgeObj.innerText = 'Thành công ✓';
+                                badgeObj.style.borderRadius = '6px';
+                            } else {
+                                badgeObj.className = 'badge bg-red-50 text-red-600 border border-red-200 shadow-sm text-[10px] px-1.5 py-0.5';
+                                badgeObj.innerText = 'Lỗi ✕';
+                                badgeObj.style.borderRadius = '6px';
+                            }
+
+                            // Parse timestamp and calculate relative time
+                            const runTime = new Date(log.timestamp + "Z"); // SQLite usually stores UTC
+                            const now = new Date();
+                            const diffMs = now - runTime;
+                            const diffMins = Math.floor(diffMs / 60000);
+                            const diffHrs = Math.floor(diffMins / 60);
+
+                            let timeStr = "";
+                            if (diffMins < 1) timeStr = "Vừa xong";
+                            else if (diffMins < 60) timeStr = diffMins + " phút trước";
+                            else if (diffHrs < 24) timeStr = diffHrs + " giờ trước";
+                            else timeStr = Math.floor(diffHrs / 24) + " ngày trước";
+
+                            timeObj.innerText = timeStr + ` (${Number(log.duration_seconds).toFixed(1)}s)`;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Overseer API Error", e);
+            }
+        }
+
+        // Load initial and poll every 30s
+        fetchAgentsStatus();
+        setInterval(fetchAgentsStatus, 30000);
+
 
         // --- 1. Stats & Charts Logic ---
 
