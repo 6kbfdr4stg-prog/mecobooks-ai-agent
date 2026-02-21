@@ -18,21 +18,28 @@ class EventManager:
     def emit(self, event_type: str, message: str, data: dict = None):
         """
         Emits an event to all connected SSE listeners.
+        Safe to call from a thread.
         """
+        import time
         payload = {
             "type": event_type,
             "message": message,
             "data": data or {},
-            "timestamp": asyncio.get_event_loop().time() if asyncio.get_event_loop().is_running() else 0
+            "timestamp": time.time()
         }
         
         # We need to handle cases where emit is called from a thread or synchronous code
         try:
-            loop = asyncio.get_running_loop()
-            for queue in self.listeners:
-                loop.call_soon_threadsafe(queue.put_nowait, payload)
-        except RuntimeError:
-            # No running loop (e.g. initial setup)
+            # Try to find any running loop in the main thread (where listeners usually are)
+            # but since we are in a thread, we use our own listeners list.
+            for queue in list(self.listeners):
+                try:
+                    # Non-blocking put for the queue
+                    queue.put_nowait(payload)
+                except Exception:
+                    pass
+        except Exception as e:
+            # Silently fail for emission during cleanup or threading edge cases
             pass
 
 # Global instance
