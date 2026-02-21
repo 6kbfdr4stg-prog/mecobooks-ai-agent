@@ -498,54 +498,44 @@ async def debug_config(username: str = Depends(get_current_username)):
 
 
 @app.get("/api/stats")
-async def get_dashboard_stats(username: str = Depends(get_current_username)):
+async def get_dashboard_stats(background_tasks: BackgroundTasks, username: str = Depends(get_current_username)):
     """
-    Returns dashboard statistics (Protected).
+    Returns dashboard statistics (Protected). Fast return, background heavy lifting.
     """
     import psutil
     import asyncio
+    from utils.cache_manager import cache
+    from utils.event_manager import event_manager
     
+    # 1. System Health (Local) - Fast
     try:
-        # 1. System Health (Local)
+        cpu_usage = psutil.cpu_percent()
+        memory = psutil.virtual_memory()
+        mem_percent = memory.percent
+        disk = psutil.disk_usage('/')
+        disk_percent = disk.percent
+    except Exception:
+        cpu_usage = mem_percent = disk_percent = 0
+    
+    system_health = {"cpu": cpu_usage, "memory": mem_percent, "disk": disk_percent}
+    
+    # 2. Business Stats - Use Cache or Background
+    cache_key = "dashboard_business_stats"
+    cached_stats = cache.get(cache_key)
+    
+    def fetch_and_emit_stats():
         try:
-            import psutil
-            cpu_usage = psutil.cpu_percent()
-            memory = psutil.virtual_memory()
-            mem_percent = memory.percent
-            disk = psutil.disk_usage('/')
-            disk_percent = disk.percent
-        except (ImportError, AttributeError, Exception):
-            # Fallback if psutil is missing or fails
-            cpu_usage = 0
-            mem_percent = 0
-            disk_percent = 0
-        
-        system_health = {
-            "cpu": cpu_usage,
-            "memory": mem_percent,
-            "disk": disk_percent
-        }
-        
-        # 2. Business Stats (Pivoted to Haravan)
-        def fetch_business_stats():
             from haravan_client import HaravanClient
             hrv = HaravanClient()
-            
-            # Month Summary
             sales_month = hrv.get_sales_report(period="month")
-            
-            # BI Data: Daily Revenue (Last 30 days)
             daily_rev = hrv.get_daily_revenue(period="30days")
             
-            # BI Data: Inventory ABC Distribution (Approximate via Analyst logic)
-            # To keep it fast, we could cache this or use a lightweight version
             from ai_agents.inventory_analyst import InventoryAnalystAgent
             analyst = InventoryAnalystAgent()
-            # Note: analyze_stock is expensive, maybe we should return a simplified version
-            # or use the cached version if available.
+            # This is the slow part
             inventory_report = analyst.analyze_stock()
             
-            return {
+            stats = {
                 "sales_total": sales_month.get("total_sales", 0),
                 "orders_count": sales_month.get("total_orders", 0),
                 "new_customers": sales_month.get("total_customers", 0),
@@ -558,16 +548,21 @@ async def get_dashboard_stats(username: str = Depends(get_current_username)):
                     }
                 }
             }
-            
-        business_stats = await asyncio.to_thread(fetch_business_stats)
-        
-        return {
-            "system": system_health,
-            "business": business_stats
-        }
-    except Exception as e:
-        print(f"Stats Error: {e}")
-        return {"error": str(e)}
+            # Cache for 15 minutes
+            cache.set(cache_key, stats, timeout=900)
+            # Emit via SSE
+            event_manager.emit("dashboard_stats", "Dashboard metrics updated.", stats)
+        except Exception as e:
+            print(f"Background Stats Error: {e}")
+
+    if not cached_stats:
+        # Trigger background fetch if not in cache
+        background_tasks.add_task(fetch_and_emit_stats)
+    
+    return {
+        "system": system_health,
+        "business": cached_stats # Might be null, frontend handles it.
+    }
 
 @app.post("/run-agent-sync/{agent_name}")
 async def run_agent_sync(agent_name: str, username: str = Depends(get_current_username)):

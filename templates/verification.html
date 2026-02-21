@@ -978,27 +978,31 @@
             }
         }
 
+        function applyStatsData(data) {
+            if (data.business) {
+                const revStr = parseInt(data.business.sales_total || 0).toLocaleString('vi-VN');
+                document.getElementById('sales-total').textContent = revStr + ' ₫';
+                document.getElementById('orders-count').textContent = data.business.orders_count || 0;
+                document.getElementById('customers-count').textContent = data.business.new_customers || 0;
+
+                if (data.business.bi) {
+                    updateCharts(data.business.bi);
+                }
+            }
+
+            if (data.system) {
+                document.getElementById('cpu-usage').textContent = (data.system.cpu || 0) + '%';
+                document.getElementById('mem-usage').textContent = (data.system.memory || 0) + '%';
+                const diskElem = document.getElementById('disk-usage');
+                if (diskElem) diskElem.textContent = (data.system.disk || 0) + '%';
+            }
+        }
+
         async function loadStats() {
             try {
                 const response = await fetch('/api/stats');
                 const data = await response.json();
-
-                if (data.business) {
-                    const revStr = parseInt(data.business.sales_total || 0).toLocaleString('vi-VN');
-                    document.getElementById('sales-total').textContent = revStr + ' ₫';
-                    document.getElementById('orders-count').textContent = data.business.orders_count || 0;
-                    document.getElementById('customers-count').textContent = data.business.new_customers || 0;
-
-                    if (data.business.bi) {
-                        updateCharts(data.business.bi);
-                    }
-                }
-
-                if (data.system) {
-                    document.getElementById('cpu-usage').textContent = (data.system.cpu || 0) + '%';
-                    document.getElementById('mem-usage').textContent = (data.system.memory || 0) + '%';
-                    document.getElementById('disk-usage').textContent = (data.system.disk || 0) + '%';
-                }
+                applyStatsData(data);
             } catch (err) {
                 console.error("Stats Error:", err);
             }
@@ -1576,6 +1580,11 @@
             eventSource.onmessage = function (event) {
                 const data = JSON.parse(event.data);
                 console.log("SSE Event:", data);
+
+                if (data.type === 'dashboard_stats') {
+                    applyStatsData({ business: data.data });
+                    return;
+                }
 
                 if (data.type === 'api_progress' || data.type === 'agent_status') {
                     liveMsg.textContent = data.message;
