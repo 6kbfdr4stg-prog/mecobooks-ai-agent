@@ -183,7 +183,7 @@ async def run_agent_endpoint(data: dict = Body(...)):
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {"status": "healthy", "version": "2.0.debug"}
 
 @app.get("/")
 def read_root():
