@@ -15,6 +15,8 @@ import glob
 import sqlite3
 import json
 from datetime import datetime
+import importlib
+import config
 from config import get_now_hanoi
 
 # Initialize Database
@@ -575,27 +577,37 @@ async def run_agent_sync(agent_name: str, username: str = Depends(get_current_us
     import asyncio
 
     def _run_agent_logic(name):
+        import importlib
+        import config
+        # Force reload config to pick up new tokens/IDs from secrets.env
+        importlib.reload(config)
+        
         try:
             result = None
             if name == "content_creator":
-                from ai_agents.content_creator import ContentCreatorAgent
-                agent = ContentCreatorAgent()
+                import ai_agents.content_creator
+                importlib.reload(ai_agents.content_creator)
+                agent = ai_agents.content_creator.ContentCreatorAgent()
                 result = agent.run()
             elif name == "inventory_analyst":
-                from ai_agents.inventory_analyst import InventoryAnalystAgent
-                agent = InventoryAnalystAgent()
+                import ai_agents.inventory_analyst
+                importlib.reload(ai_agents.inventory_analyst)
+                agent = ai_agents.inventory_analyst.InventoryAnalystAgent()
                 result = agent.run()
             elif name == "bi_analyst":
-                from ai_agents.bi_analyst import BIAnalystAgent
-                agent = BIAnalystAgent()
+                import ai_agents.bi_analyst
+                importlib.reload(ai_agents.bi_analyst)
+                agent = ai_agents.bi_analyst.BIAnalystAgent()
                 result = agent.run_daily_summary()
             elif name == "market_research":
-                from ai_agents.market_research import MarketResearchAgent
-                agent = MarketResearchAgent()
+                import ai_agents.market_research
+                importlib.reload(ai_agents.market_research)
+                agent = ai_agents.market_research.MarketResearchAgent()
                 result = agent.run()
             elif name == "integrity_manager":
-                from ai_agents.integrity_manager import IntegrityManagerAgent
-                agent = IntegrityManagerAgent()
+                import ai_agents.integrity_manager
+                importlib.reload(ai_agents.integrity_manager)
+                agent = ai_agents.integrity_manager.IntegrityManagerAgent()
                 # Integrity manager returns a path
                 report_path = agent.run()
                 if os.path.exists(report_path):
@@ -604,8 +616,9 @@ async def run_agent_sync(agent_name: str, username: str = Depends(get_current_us
                 else:
                     result = "Report generation failed."
             elif name == "auto_debug":
-                from ai_agents.auto_debug import AutoDebugAgent
-                agent = AutoDebugAgent()
+                import ai_agents.auto_debug
+                importlib.reload(ai_agents.auto_debug)
+                agent = ai_agents.auto_debug.AutoDebugAgent()
                 run_result = agent.run()
                 result = run_result.get('output', 'AutoDebug scan complete.')
             else:
