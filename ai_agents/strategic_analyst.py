@@ -33,8 +33,7 @@ class StrategicAnalystAgent:
                     meta = data.get("metadata", {})
                     if meta.get("event") == "USER_QUERY":
                         queries.append(meta.get("query", ""))
-                except:
-                    continue
+                except Exception as e:                    continue
         
         if not queries:
             return "No recent queries found."

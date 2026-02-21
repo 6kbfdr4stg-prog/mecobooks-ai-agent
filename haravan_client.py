@@ -526,6 +526,6 @@ if __name__ == "__main__":
     print(f"Fetched {len(products)} products.")
     for p in products:
         data = client.extract_product_data(p)
-        print(f"Product: {data['title']}")
-        print(f"Images: {len(data['images'])}")
+        print(f"Product: {data.get('title')}")
+        print(f"Images: {len(data.get('images'))}")
         print("-" * 20)

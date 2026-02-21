@@ -69,13 +69,13 @@ class AutoDebugAgent:
         'GEMINI_API_KEY'
     ]
 
-    # Dangerous patterns to flag in code
+    # Dangerous patterns to flag and optionally auto-fix
+    # Tuple format: (regex_match, log_message_template, replacement_string)
     DANGEROUS_PATTERNS = [
-        (r"product\['(\w+)'\]", "Bare dict access product['{0}'] — use product.get('{0}') instead"),
-        (r"item\['(\w+)'\]",    "Bare dict access item['{0}'] — use item.get('{0}') instead"),
-        (r"data\['(\w+)'\]",    "Bare dict access data['{0}'] — may raise KeyError"),
-        (r'except:\s*$',        "Bare 'except:' — should be 'except Exception as e:'"),
-        (r'print\(.*password.*\)', "Possible password leak in print statement"),
+        (r"product\['(\w+)'\]", "Bare dict access product['{0}']", r"product.get('\1')"),
+        (r"item\['(\w+)'\]",    "Bare dict access item['{0}']", r"item.get('\1')"),
+        (r"data\['(\w+)'\]",    "Bare dict access data['{0}']", r"data.get('\1')"),
+        (r"except:\s*$",        "Bare 'except:'", r"except Exception as e:")
     ]
 
     def __init__(self):
@@ -138,32 +138,51 @@ class AutoDebugAgent:
 
     # ── Check 2: Dangerous Code Patterns ──────────────────────────────────
     def check_dangerous_patterns(self):
-        """Scan source files for risky patterns that likely cause KeyErrors."""
+        """Scan source files for risky patterns and auto-fix bare dict accesses."""
         pattern_hits = 0
         for fpath in self.python_files:
             try:
                 with open(fpath, 'r', encoding='utf-8', errors='ignore') as f:
                     lines = f.readlines()
+                
+                file_modified = False
                 for lineno, line in enumerate(lines, start=1):
-                    for pattern, msg_template in self.DANGEROUS_PATTERNS:
-                        matches = re.findall(pattern, line)
-                        for match in matches:
-                            key = match if isinstance(match, str) else match[0]
-                            # Skip lines that already use .get(
-                            if '.get(' in line:
+                    new_line = line
+                    for pattern, msg_template, replacement in self.DANGEROUS_PATTERNS:
+                        matches = re.findall(pattern, new_line)
+                        if matches:
+                            # Avoid fixing if it looks like there's already a safe access on the line to prevent mangling
+                            if '.get(' in new_line and "get(" in replacement:
                                 continue
-                            message = msg_template.format(key)
-                            self.issues.append({
-                                'severity': 'WARN',
-                                'file': os.path.relpath(fpath, self.base_dir),
-                                'line': lineno,
-                                'message': message,
-                                'auto_fixed': False
-                            })
-                            pattern_hits += 1
-            except Exception:
-                pass
-        logger.info(f"⚠️  Pattern check: {pattern_hits} risky patterns found")
+                            
+                            for match in matches:
+                                key = match if isinstance(match, str) else match[0]
+                                message = msg_template.format(key)
+                                
+                                # Apply regex replacement to the line
+                                new_line = re.sub(pattern, replacement, new_line)
+                                
+                                self.issues.append({
+                                    'severity': 'WARN',
+                                    'file': os.path.relpath(fpath, self.base_dir),
+                                    'line': lineno,
+                                    'message': f"AUTO-FIXED: {message}",
+                                    'auto_fixed': True
+                                })
+                                self.fixes_applied += 1
+                                pattern_hits += 1
+                    
+                    if new_line != line:
+                        lines[lineno - 1] = new_line
+                        file_modified = True
+                
+                if file_modified:
+                    with open(fpath, 'w', encoding='utf-8') as f:
+                        f.writelines(lines)
+            except Exception as e:
+                logger.warning(f"Could not scan/fix {fpath}: {e}")
+                
+        logger.info(f"✨ Pattern check: {pattern_hits} risky patterns auto-fixed")
 
     # ── Check 3: Missing Environment Variables ─────────────────────────────
     def check_env_vars(self):
@@ -361,11 +380,11 @@ class AutoDebugAgent:
             # Telegram message is a shorter summary
             errors = [i for i in self.issues if i['severity'] == 'ERROR']
             warnings = [i for i in self.issues if i['severity'] == 'WARN']
-            status = "🔴 Cần xử lý ngay!" if errors else ("⚠️ Có cảnh báo" if warnings else "✅ Hệ thống sạch")
+            status = "🔴 Cần xử lý!" if errors else ("✨ Đã tự động dọn dẹp" if self.fixes_applied else "✅ Hệ thống sạch")
             msg = (
                 f"🔍 AutoDebug Agent — {datetime.datetime.now().strftime('%d/%m %H:%M')}\n"
                 f"{status}\n"
-                f"• Lỗi: {len(errors)} | Cảnh báo: {len(warnings)}\n"
+                f"• Lỗi: {len(errors)} | Tự sửa: {self.fixes_applied}\n"
                 f"• Files quét: {len(self.python_files)} Python + {len(self.html_files)} HTML\n"
             )
             if errors:

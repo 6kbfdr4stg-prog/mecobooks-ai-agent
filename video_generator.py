@@ -39,8 +39,7 @@ try:
     import google.colab
     IN_COLAB = True
     print("✨ Running in Google Colab")
-except:
-    IN_COLAB = False
+except Exception as e:    IN_COLAB = False
     print("🖥️ Running Locally")
 
 # Create a project dir
@@ -486,8 +485,7 @@ def _guess_language_from_voice_name(voice_name: str, default_lang: str = "vi-VN"
         parts = voice_name.split("-")
         if len(parts) >= 2:
             return f"{parts[0]}-{parts[1]}"
-    except:
-        pass
+    except Exception as e:        pass
     return default_lang
 
 def vbee_tts_get_audio_path(input_text: str,
@@ -513,8 +511,7 @@ def vbee_tts_get_audio_path(input_text: str,
         atype = "mp3"
     try:
         speaking_rate = float(speed_rate)
-    except:
-        speaking_rate = 1.0
+    except Exception as e:        speaking_rate = 1.0
 
     # Cache key (bỏ qua bitrate)
     key = f"REST|{voice_name}|{language_code}|{atype}|{speaking_rate}|{input_text}"

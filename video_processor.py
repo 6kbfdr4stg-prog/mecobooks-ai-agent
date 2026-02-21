@@ -30,8 +30,7 @@ class VideoProcessor:
                 from moviepy.config import change_settings
                 if os.name != 'nt': # Linux/Mac
                     change_settings({"IMAGEMAGICK_BINARY": "convert"})
-            except:
-                pass
+            except Exception as e:                pass
 
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -160,17 +159,17 @@ class VideoProcessor:
         Main function to create video.
         product_data: {'title': str, 'image_url': str, 'script': str, 'id': str}
         """
-        print(f"🎬 Creating video for: {product_data['title']}")
+        print(f"🎬 Creating video for: {product_data.get('title')}")
         
         # 1. Image
-        pil_img = self._download_image(product_data['image_url'])
+        pil_img = self._download_image(product_data.get('image_url'))
         if not pil_img:
             return None
         
         img_path = self._create_portrait_image(pil_img)
         
         # 2. Audio
-        audio_path = self._generate_tts(product_data['script'])
+        audio_path = self._generate_tts(product_data.get('script'))
         if not audio_path:
             return None
             
@@ -196,7 +195,7 @@ class VideoProcessor:
             final_clip.fps = FPS
             
             # Output Path
-            output_filename = f"video_{product_data['id']}.mp4"
+            output_filename = f"video_{product_data.get('id')}.mp4"
             output_path = os.path.join(STATIC_VIDEO_DIR, output_filename)
             
             final_clip.write_videofile(

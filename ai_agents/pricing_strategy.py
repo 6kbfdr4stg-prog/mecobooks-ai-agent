@@ -313,7 +313,7 @@ class PricingStrategyAgent:
         errors = []
 
         for product in stale_products:
-            current_price = product['current_price']
+            current_price = product.get('current_price')
             if current_price <= 0:
                 continue
 
@@ -322,8 +322,8 @@ class PricingStrategyAgent:
 
             if dry_run:
                 applied.append({
-                    'id': product['id'],
-                    'title': product['title'],
+                    'id': product.get('id'),
+                    'title': product.get('title'),
                     'old_price': current_price,
                     'new_price': int(new_price),
                     'status': 'dry_run'
@@ -339,12 +339,12 @@ class PricingStrategyAgent:
                             )
 
                     # Tag product as Tier 2 on Haravan
-                    self.hrv.tag_product_tier(int(product['id']), tier=2)
+                    self.hrv.tag_product_tier(int(product.get('id')), tier=2)
 
                     # Log the transition to pricing_history
                     self._log_tier_transition(
-                        product_id=product['id'],
-                        title=product['title'],
+                        product_id=product.get('id'),
+                        title=product.get('title'),
                         from_tier=product.get('current_tier', 1),
                         to_tier=2,
                         old_price=current_price,
@@ -352,16 +352,16 @@ class PricingStrategyAgent:
                     )
 
                     applied.append({
-                        'id': product['id'],
-                        'title': product['title'],
+                        'id': product.get('id'),
+                        'title': product.get('title'),
                         'old_price': current_price,
                         'new_price': int(new_price),
                         'status': 'updated'
                     })
-                    logger.info(f"  ✅ Markdown: {product['title']} | {current_price:,}đ → {int(new_price):,}đ")
+                    logger.info(f"  ✅ Markdown: {product.get('title')} | {current_price:,}đ → {int(new_price):,}đ")
                 except Exception as e:
-                    errors.append({'title': product['title'], 'error': str(e)})
-                    logger.error(f"  ❌ Failed to update {product['title']}: {e}")
+                    errors.append({'title': product.get('title'), 'error': str(e)})
+                    logger.error(f"  ❌ Failed to update {product.get('title')}: {e}")
 
         result = {
             'total_stale': len(stale_products),
@@ -387,8 +387,8 @@ class PricingStrategyAgent:
             lines.append(f"Đã giảm giá: *{result['total_marked_down']}* sản phẩm\n")
             for item in result['markdowns'][:10]:  # Max 10 items in telegram msg
                 lines.append(
-                    f"• {item['title'][:40]}\n"
-                    f"  {item['old_price']:,}đ → {item['new_price']:,}đ"
+                    f"• {item.get('title')[:40]}\n"
+                    f"  {item.get('old_price'):,}đ → {item.get('new_price'):,}đ"
                 )
             send_telegram_message("\n".join(lines))
         except Exception as e:
@@ -431,14 +431,14 @@ class PricingStrategyAgent:
             # Group by Vendor (Author)
             by_vendor = {}
             for item in tier2_items:
-                v = item['vendor']
+                v = item.get('vendor')
                 if v not in by_vendor: by_vendor[v] = []
                 by_vendor[v].append(item)
 
             # Group by Category (Topic)
             by_cat = {}
             for item in tier2_items:
-                cat = item['category']
+                cat = item.get('category')
                 if cat not in by_cat: by_cat[cat] = []
                 by_cat[cat].append(item)
 

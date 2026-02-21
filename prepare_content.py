@@ -43,16 +43,16 @@ def prepare_product_content(product_data):
     - Downloads images.
     - Formats data into a standardized dictionary.
     """
-    print(f"Preparing content for: {product_data['title']}")
+    print(f"Preparing content for: {product_data.get('title')}")
     
     # 1. Clean Text
-    bs_description = clean_html(product_data['description'])
+    bs_description = clean_html(product_data.get('description'))
     # formatting price
-    price_formatted = "{:,.0f} đ".format(float(product_data['price'])) if product_data['price'] else ""
+    price_formatted = "{:,.0f} đ".format(float(product_data.get('price'))) if product_data.get('price') else ""
     
     # Create a simple script if description is too short or empty
     if len(bs_description) < 50:
-        script = f"Giới thiệu sản phẩm mới: {product_data['title']}. Giá bán hấp dẫn chỉ {price_formatted}. Mua ngay rại cửa hàng của chúng tôi."
+        script = f"Giới thiệu sản phẩm mới: {product_data.get('title')}. Giá bán hấp dẫn chỉ {price_formatted}. Mua ngay rại cửa hàng của chúng tôi."
     else:
         # Take first 300 chars or so for video to not be too long? 
         # For now, let's use the full description but maybe truncate later
@@ -60,8 +60,8 @@ def prepare_product_content(product_data):
 
     # 2. Download Images
     local_images = []
-    pid = product_data['id']
-    for idx, img_url in enumerate(product_data['images']):
+    pid = product_data.get('id')
+    for idx, img_url in enumerate(product_data.get('images')):
         prefix = f"{pid}_{idx}"
         local_path = download_image(img_url, TEMP_IMAGE_DIR, prefix)
         if local_path:
@@ -69,7 +69,7 @@ def prepare_product_content(product_data):
     
     return {
         "id": pid,
-        "title": product_data['title'],
+        "title": product_data.get('title'),
         "script": script,
         "price_text": price_formatted,
         "images": local_images

@@ -92,7 +92,7 @@ class PriceScoutAgent:
                         # Extract digits for price
                         digits = ''.join(filter(str.isdigit, price_text))
                         price = int(digits) if digits else 0
-                        link = "https://www.oreka.vn" + item['href'] if item['href'].startswith('/') else item['href']
+                        link = "https://www.oreka.vn" + item.get('href') if item.get('href').startswith('/') else item.get('href')
                         results.append({
                             "platform": "Oreka",
                             "title": title,

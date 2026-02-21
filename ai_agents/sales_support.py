@@ -103,7 +103,7 @@ class SalesSupportAgent:
                 total = f"{int(float(order['total_price'])):,} VNĐ"
                 
                 # List items
-                items_str = ", ".join([f"{item['title']} (x{item['quantity']})" for item in order['line_items']])
+                items_str = ", ".join([f"{item.get('title')} (x{item.get('quantity')})" for item in order['line_items']])
                 
                 response = f"""
                 📦 **THÔNG TIN ĐƠN HÀNG #{order['id']}**
@@ -149,8 +149,7 @@ class SalesSupportAgent:
             price_str = data.get("price", "0").replace(",", "").replace(".", "")
             try:
                 price_val = int(price_str)
-            except:
-                price_val = 0
+            except Exception as e:                price_val = 0
                 
             # Shipping Logic
             shipping_fee = 20000
@@ -173,9 +172,9 @@ class SalesSupportAgent:
             - Phí ship: {shipping_text}
             - TỔNG CỘNG: {total_text}
             -------------------------
-            - Họ tên: {data['name']}
-            - SĐT: {data['phone']}
-            - Địa chỉ: {data['address']}
+            - Họ tên: {data.get('name')}
+            - SĐT: {data.get('phone')}
+            - Địa chỉ: {data.get('address')}
             
             Bạn có muốn "Xác nhận đặt hàng" ngay không? (Trả lời "Có" hoặc "Ok")
             """
@@ -232,7 +231,7 @@ class SalesSupportAgent:
                 
                 if new_order:
                     # Log Conversion
-                    self.logger.info(f"Order Created", extra={"metadata": {"user_id": user_id, "order_id": new_order['id'], "total": order_data['shipping_lines'][0]['total'], "event": "CONVERSION"}})
+                    self.logger.info(f"Order Created", extra={"metadata": {"user_id": user_id, "order_id": new_order['id'], "total": order_data.get('shipping_lines')[0]['total'], "event": "CONVERSION"}})
                     # Reset State
                     self.conversations[user_id] = {"state": "NORMAL", "data": {}}
                     
@@ -295,15 +294,15 @@ class SalesSupportAgent:
              if products:
                  product = products[0]
                  # Log successful search
-                 self.logger.info(f"Product Found", extra={"metadata": {"query": target_book, "product": product['title']}})
+                 self.logger.info(f"Product Found", extra={"metadata": {"query": target_book, "product": product.get('title')}})
                  # Start collecting info
                  self.conversations[user_id]["state"] = "COLLECTING_NAME"
                  self.conversations[user_id]["data"] = {
-                     "variant_id": product['variant_id'],
-                     "product_name": product['title'],
-                     "price": product['price']
+                     "variant_id": product.get('variant_id'),
+                     "product_name": product.get('title'),
+                     "price": product.get('price')
                  }
-                 return f"Bạn muốn đặt cuốn '{product['title']}' ({product['price']}đ) đúng không ạ?\nCho mình xin Tên của bạn để tiện xưng hô nhé!"
+                 return f"Bạn muốn đặt cuốn '{product.get('title')}' ({product.get('price')}đ) đúng không ạ?\nCho mình xin Tên của bạn để tiện xưng hô nhé!"
              else:
                  return "Hiện tại mình chưa tìm thấy cuốn sách đó. Bạn kiểm tra lại tên sách giúp mình nhé."
         
@@ -355,10 +354,10 @@ class SalesSupportAgent:
         if platform == "web":
             # Convert to HTML for the widget
             if response_data.get("type") == "product_list":
-                html = f"<div class='h-bot-message' style='margin-bottom:10px;'>{response_data['text']}</div>"
+                html = f"<div class='h-bot-message' style='margin-bottom:10px;'>{response_data.get('text')}</div>"
                 html += "<div class='h-product-list' style='display:flex; flex-direction:column; gap:10px;'>"
                 
-                for p in response_data['products']:
+                for p in response_data.get('products'):
                     img = p.get('image', 'https://via.placeholder.com/150')
                     price = p.get('price', 'Liên hệ')
                     if price != "Liên hệ": price += "₫"
@@ -386,7 +385,7 @@ class SalesSupportAgent:
             # Convert to Generic Template
             if response_data.get("type") == "product_list":
                 elements = []
-                for p in response_data['products'][:10]: # FB limit 10
+                for p in response_data.get('products')[:10]: # FB limit 10
                     img = p.get('image', '')
                     price = p.get('price', 'Liên hệ')
                     if price != "Liên hệ": price += "₫"

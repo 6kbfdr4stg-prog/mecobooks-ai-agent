@@ -33,7 +33,7 @@ if intersection:
     for sku in list(intersection)[:5]:
         h_data = h_skus[sku]
         w_data = w_skus[sku]
-        print(f"SKU: {sku} | Haravan: {h_data['qty']} | Woo: {w_data['stock_quantity']} | Name: {w_data['name']}")
+        print(f"SKU: {sku} | Haravan: {h_data.get('qty')} | Woo: {w_data.get('stock_quantity')} | Name: {w_data.get('name')}")
 else:
     print("❌ Không tìm thấy SKU trùng khớp nào trong 250 sản phẩm WooCommerce đầu tiên.")
     

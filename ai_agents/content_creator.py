@@ -67,20 +67,19 @@ class ContentCreatorAgent:
             import random
             product = random.choice(products)
         
-        print(f"   Selected Product: {product['title']}")
+        print(f"   Selected Product: {product.get('title')}")
  
         # 3. Generate Caption
         prompt = f"""
         Bạn là một chuyên gia sáng tạo nội dung cho Tiệm Sách Anh Tuấn (mecobooks.com).
         {trend_context}
         
-        Hãy viết một bài đăng {platform} hấp dẫn để giới thiệu cuốn sách: "{product['title']}".
+        Hãy viết một bài đăng {platform} hấp dẫn để giới thiệu cuốn sách: "{product.get('title')}".
         
         Thông tin sách:
-        - Giá: {product['price']} VNĐ
-        - Tình trạng: {product['inventory_text']}
-        - Tình trạng: {product['inventory_text']}
-        - Link mua hàng: {product['url']} (LƯU Ý: KHÔNG chèn link này vào bài viết, chỉ viết nội dung kêu gọi. Link sẽ được để dưới comment).
+        - Giá: {product.get('price', 'Đang cập nhật')} VNĐ
+        - Tình trạng: {product.get('inventory_quantity', 'Đang cập nhật')} cuốn
+        - Link mua hàng: {product.get('url', 'https://mecobooks.com')} (LƯU Ý: KHÔNG chèn link này vào bài viết, chỉ viết nội dung kêu gọi. Link sẽ được để dưới comment).
         
         Yêu cầu:
         - Tone giọng: Nhẹ nhàng, sâu sắc, tinh tế, kể chuyện (storytelling).
@@ -104,7 +103,7 @@ class ContentCreatorAgent:
         # Split caption and script
         parts = full_response.split("SCRIPT_VIDEO:")
         caption = parts[0].strip()
-        video_script = parts[1].strip() if len(parts) > 1 else f"Giới thiệu cuốn sách {product['title']}. Một tác phẩm tuyệt vời bạn không nên bỏ lỡ."
+        video_script = parts[1].strip() if len(parts) > 1 else f"Giới thiệu cuốn sách {product.get('title')}. Một tác phẩm tuyệt vời bạn không nên bỏ lỡ."
 
         # 4. Generate Video
         video_url = ""
@@ -113,10 +112,10 @@ class ContentCreatorAgent:
         #     from video_processor import VideoProcessor
         #     vp = VideoProcessor()
         #     video_path = vp.generate_video({
-        #         "title": product['title'],
-        #         "image_url": product['image'],
+        #         "title": product.get('title'),
+        #         "image_url": product.get('image'),
         #         "script": video_script,
-        #         "id": f"{product['id']}_{int(time.time())}"
+        #         "id": f"{product.get('id')}_{int(time.time())}"
         #     })
         #     
         #     if video_path:
@@ -131,7 +130,7 @@ class ContentCreatorAgent:
         return {
             "product": product,
             "caption": caption,
-            "image_url": product['image'],
+            "image_url": product.get('image', ''),
             "video_url": video_url,
             "video_script": video_script
         }

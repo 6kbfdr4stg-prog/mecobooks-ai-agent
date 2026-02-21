@@ -60,12 +60,12 @@ class InventoryOpsAgent:
         
         # 3. Analyze
         for sku, h_data in h_inventory.items():
-            h_qty = h_data['qty']
+            h_qty = h_data.get('qty')
             h_sales = v_sales.get(sku, 0)
             
             # Alert Logic
             if h_qty <= self.LOW_STOCK_THRESHOLD:
-                item_info = {"sku": sku, "name": h_data['name'], "qty": h_qty, "sales": h_sales}
+                item_info = {"sku": sku, "name": h_data.get('name'), "qty": h_qty, "sales": h_sales}
                 results["low_stock"].append(item_info)
                 
                 if h_sales >= self.HOT_ITEM_SALES_THRESHOLD:
@@ -92,7 +92,7 @@ class InventoryOpsAgent:
             report += "| SKU | Tên sản phẩm | Tồn kho | Doanh số (30 ngày) |\n"
             report += "| :--- | :--- | :--- | :--- |\n"
             for item in results['hot_items']:
-                report += f"| {item['sku']} | {item['name']} | **{item['qty']}** | {item['sales']} |\n"
+                report += f"| {item.get('sku')} | {item.get('name')} | **{item.get('qty')}** | {item.get('sales')} |\n"
             report += "\n"
             
         # 3. Low Stock Details
@@ -101,7 +101,7 @@ class InventoryOpsAgent:
              report += "| SKU | Tên sản phẩm | Tồn kho |\n"
              report += "| :--- | :--- | :--- |\n"
              for item in results['low_stock'][:10]: # Limit to top 10
-                 report += f"| {item['sku']} | {item['name']} | {item['qty']} |\n"
+                 report += f"| {item.get('sku')} | {item.get('name')} | {item.get('qty')} |\n"
              if len(results['low_stock']) > 10:
                  report += f"\n*...và {len(results['low_stock']) - 10} sản phẩm khác.*"
              report += "\n"
