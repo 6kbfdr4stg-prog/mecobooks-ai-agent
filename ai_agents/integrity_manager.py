@@ -23,7 +23,8 @@ except ImportError:
 class IntegrityManagerAgent:
     def __init__(self):
         self.logger = logging.getLogger("integrity_manager")
-        self.reports_dir = "/app/reports" if os.path.exists("/app") else "reports"
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.reports_dir = os.path.join(base_dir, "integrity_reports")
         os.makedirs(self.reports_dir, exist_ok=True)
         # Email Notifier
         try:
@@ -121,7 +122,7 @@ class IntegrityManagerAgent:
         
         report += "\n---\n*Được tạo tự động bởi Integrity Manager Agent.*"
         
-        filename = os.path.join(self.reports_dir, f"integrity_report_latest.md")
+        filename = os.path.join(self.reports_dir, f"system_integrity_report.md")
         with open(filename, "w", encoding="utf-8") as f:
             f.write(report)
         
