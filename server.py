@@ -347,7 +347,17 @@ async def get_feed():
 import threading
 import time
 import schedule
-from scheduler import job_create_content, job_email_marketing, job_analyze_inventory, job_auto_bundling
+from scheduler import (
+    job_create_content, 
+    job_email_marketing, 
+    job_analyze_inventory, 
+    job_auto_bundling,
+    job_market_research,
+    job_daily_bi_report,
+    job_integrity_check,
+    job_apply_markdowns,
+    job_sync_bundles
+)
 
 # Define Schedule inside server or import from scheduler.py
 # If we import from scheduler.py, we need to make sure scheduler.py defines the schedule but doesn't run the loop immediately on import.
@@ -363,22 +373,36 @@ from scheduler import job_create_content, job_email_marketing, job_analyze_inven
 # Actually, if I modify scheduler.py to not block on import, I can import it here.
 
 def run_scheduler():
-    from scheduler import job_create_content, job_email_marketing, job_analyze_inventory, job_market_research
-    import schedule
+    # Production Schedule (UTC Time)
+    # 01:00 UTC = 08:00 AM VN
+    schedule.every().day.at("01:00").do(job_daily_bi_report)
+    schedule.every().day.at("01:00").do(job_auto_bundling)
     
-    # Redefine schedule here to be safe and explicit
-    schedule.every().day.at("04:00").do(job_create_content) # 11:00 AM VN
-    schedule.every().day.at("13:00").do(job_create_content) # 20:00 PM VN
-    # schedule.every().day.at("03:00").do(job_email_marketing) # 10:00 AM VN
-    schedule.every().day.at("01:00").do(job_auto_bundling) # 08:00 AM VN Daily (Phase 8.1)
-    schedule.every().monday.at("01:30").do(job_analyze_inventory) # 08:30 AM VN Monday
-    schedule.every(3).days.at("02:00").do(job_market_research) # 09:00 AM VN every 3 days
+    # 04:00 UTC = 11:00 AM VN
+    schedule.every().day.at("04:00").do(job_create_content)
     
-    print("🚀 [Server] Scheduler thread started...")
+    # 13:00 UTC = 08:00 PM VN
+    schedule.every().day.at("13:00").do(job_create_content)
+    
+    # Other recurring tasks
+    schedule.every().monday.at("01:30").do(job_analyze_inventory)
+    schedule.every(3).days.at("02:00").do(job_market_research)
+    schedule.every(15).minutes.do(job_sync_bundles)
+    schedule.every().hour.do(job_integrity_check)
+    schedule.every().tuesday.at("02:00").do(job_apply_markdowns)
+    
+    print("🚀 [Server] Scheduler thread started with all Phase 9 jobs...")
     while True:
-        schedule.run_pending()
+        try:
+            schedule.run_pending()
+        except Exception as e:
+            print(f"❌ [Scheduler Error] {e}")
+            try:
+                from ai_agents.telegram_client import send_telegram_message
+                send_telegram_message(f"🚨 <b>Scheduler Error</b>\n\n<code>{str(e)}</code>")
+            except: pass
         time.sleep(60)
-
+    
 @app.on_event("startup")
 def startup_event():
     # Start scheduler in a separate thread
@@ -394,6 +418,22 @@ async def trigger_content(background_tasks: BackgroundTasks):
     from scheduler import job_create_content
     background_tasks.add_task(job_create_content)
     return {"status": "triggered", "message": "Content generation started in background"}
+
+@app.get("/debug/scheduler")
+async def get_scheduler_status(username: str = Depends(get_current_username)):
+    """
+    Returns the list of pending jobs in the scheduler.
+    """
+    jobs = []
+    for job in schedule.jobs:
+        jobs.append({
+            "job": str(job.job_func.__name__),
+            "next_run": str(job.next_run),
+            "last_run": str(job.last_run),
+            "period": str(job.period),
+            "unit": str(job.unit)
+        })
+    return {"jobs": jobs}
 
 @app.get("/debug/videos")
 async def list_videos():
