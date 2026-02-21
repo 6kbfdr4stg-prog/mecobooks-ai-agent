@@ -9,6 +9,7 @@ import time
 import logging
 import datetime
 import sqlite3
+import traceback
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)

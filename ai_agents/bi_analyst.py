@@ -57,9 +57,13 @@ class BIAnalystAgent:
 
         msg += "🚀 <i>Hệ thống AI đã sẵn sàng cho ngày mới!</i>"
 
-        # 5. Send
-        send_telegram_message(msg)
-        return {"status": "success", "message": "Daily summary sent"}
+        # 5. Send (Strict)
+        try:
+            send_telegram_message(msg)
+            return {"status": "success", "message": f"Daily summary for {yesterday_str} sent to Telegram"}
+        except Exception as e:
+            logger.error(f"BI Agent failed at notification step: {e}")
+            raise  # Propagate to Overseer/Server to mark as Failure
 
 if __name__ == "__main__":
     agent = BIAnalystAgent()

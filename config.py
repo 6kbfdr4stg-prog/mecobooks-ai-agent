@@ -3,36 +3,45 @@ from dotenv import load_dotenv
 
 # Load environment variables from .env file for local development
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-env_path = os.path.join(BASE_DIR, ".env")
-load_dotenv(env_path)
 
-# Haravan API Configuration
+# Declare global variables
+HARAVAN_SHOP_URL = ""
+HARAVAN_ACCESS_TOKEN = ""
+GEMINI_API_KEY = ""
+GOOGLE_TTS_API_KEY = ""
+WOO_URL = ""
+WOO_CONSUMER_KEY = ""
+WOO_CONSUMER_SECRET = ""
+TELEGRAM_BOT_TOKEN = ""
+TELEGRAM_CHAT_ID = ""
 
-HARAVAN_SHOP_URL = os.environ.get("HARAVAN_SHOP_URL", "https://tiem-sach-anh-tuan.myharavan.com/")
-HARAVAN_ACCESS_TOKEN = os.environ.get("HARAVAN_ACCESS_TOKEN", "")
+def reload_config():
+    """Reads environment variables from .env/secrets.env and updates globals."""
+    global HARAVAN_SHOP_URL, HARAVAN_ACCESS_TOKEN, GEMINI_API_KEY, GOOGLE_TTS_API_KEY
+    global WOO_URL, WOO_CONSUMER_KEY, WOO_CONSUMER_SECRET, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+    
+    # Try .env first, then fallback to secrets.env (to bypass MacOS permissions)
+    env_paths = [os.path.join(BASE_DIR, ".env"), os.path.join(BASE_DIR, "secrets.env")]
+    for env_path in env_paths:
+        if os.path.exists(env_path):
+            load_dotenv(env_path, override=True)
+        else:
+            try: load_dotenv(env_path, override=True)
+            except: pass
 
-# Gemini API Configuration
-def get_required_key(env_name):
-    key = os.environ.get(env_name, "").strip()
-    if not key:
-        return ""
-    return key
+    HARAVAN_SHOP_URL = os.environ.get("HARAVAN_SHOP_URL", "https://tiem-sach-anh-tuan.myharavan.com/")
+    HARAVAN_ACCESS_TOKEN = os.environ.get("HARAVAN_ACCESS_TOKEN", "")
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+    GOOGLE_TTS_API_KEY = os.environ.get("GOOGLE_TTS_API_KEY", "").strip() or GEMINI_API_KEY
+    WOO_URL = os.environ.get("WOO_URL", "https://mecobooks.com")
+    WOO_CONSUMER_KEY = os.environ.get("WOO_CONSUMER_KEY", "")
+    WOO_CONSUMER_SECRET = os.environ.get("WOO_CONSUMER_SECRET", "")
+    TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
-GEMINI_API_KEY = get_required_key("GEMINI_API_KEY")
-GOOGLE_TTS_API_KEY = get_required_key("GOOGLE_TTS_API_KEY")
+# Initial load
+reload_config()
 
-# Fallback to Gemini Key for TTS if TTS key is missing
-if not GOOGLE_TTS_API_KEY and GEMINI_API_KEY:
-    GOOGLE_TTS_API_KEY = GEMINI_API_KEY
-
-# WooCommerce Configuration
-WOO_URL = os.environ.get("WOO_URL", "https://mecobooks.com")
-WOO_CONSUMER_KEY = os.environ.get("WOO_CONSUMER_KEY", "")
-WOO_CONSUMER_SECRET = os.environ.get("WOO_CONSUMER_SECRET", "")
-
-# Telegram Configuration
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
 # Timezone Configuration (Asia/Ho_Chi_Minh - UTC+7)
 from datetime import datetime, timezone, timedelta

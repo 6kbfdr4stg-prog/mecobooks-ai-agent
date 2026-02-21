@@ -484,6 +484,17 @@ async def get_agents_status(username: str = Depends(get_current_username)):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@app.get("/api/debug/config")
+async def debug_config(username: str = Depends(get_current_username)):
+    """Check current Telegram config in the running process."""
+    import config
+    return {
+        "bot_token": config.TELEGRAM_BOT_TOKEN[:10] + "..." if config.TELEGRAM_BOT_TOKEN else "MISSING",
+        "chat_id": config.TELEGRAM_CHAT_ID or "MISSING",
+        "env_files_checked": [os.path.join(config.BASE_DIR, ".env"), os.path.join(config.BASE_DIR, "secrets.env")]
+    }
+
+
 @app.get("/api/stats")
 async def get_dashboard_stats(username: str = Depends(get_current_username)):
     """
@@ -598,26 +609,34 @@ async def run_agent_sync(agent_name: str, username: str = Depends(get_current_us
                 run_result = agent.run()
                 result = run_result.get('output', 'AutoDebug scan complete.')
             else:
-                 raise HTTPException(status_code=400, detail="Unknown agent")
+                raise ValueError(f"Agent {name} logic not implemented.")
 
             return result # Return raw content or path depending on agent
         except Exception as e:
             import traceback
             traceback.print_exc()
-            return f"Error: {str(e)}"
+            raise ValueError(str(e)) # Propagate as ValueError to be caught below
 
     # Run agent
-    content = await asyncio.to_thread(_run_agent_logic, agent_name)
+    try:
+        content = await asyncio.to_thread(_run_agent_logic, agent_name)
+    except Exception as e:
+        return {"status": "error", "agent": agent_name, "message": f"Agent Execution Failed: {str(e)}"}
     
     # Save to Database
     if content and isinstance(content, str):
-        conn = get_db_connection()
-        c = conn.cursor()
-        now_hanoi = get_now_hanoi()
-        c.execute("INSERT INTO reports (agent_name, report_type, content, created_at) VALUES (?, ?, ?, ?)",
-                  (f"{agent_name}_{now_hanoi.strftime('%Y%m%d%H%M')}.md", "markdown", content, now_hanoi))
-        conn.commit()
-        conn.close()
+        try:
+            conn = get_db_connection()
+            c = conn.cursor()
+            now_hanoi = get_now_hanoi()
+            c.execute("INSERT INTO reports (agent_name, report_type, content, created_at) VALUES (?, ?, ?, ?)",
+                      (f"{agent_name}_{now_hanoi.strftime('%Y%m%d%H%M')}.md", "markdown", content, now_hanoi))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            # We log this but maybe keep going if it's just a DB sync error? 
+            # No, user wants STRICT.
+            return {"status": "error", "agent": agent_name, "message": f"Database Save Failed: {str(e)}"}
         
         # Send Telegram Notification
         try:
@@ -629,7 +648,7 @@ async def run_agent_sync(agent_name: str, username: str = Depends(get_current_us
             message = f"✅ <b>Report Generated: {agent_name}</b>\n\n{clean_snippet}\n\n<a href='https://mecobooks-ai-agent.onrender.com/verify'>Xem trên Dashboard</a>"
             send_telegram_message(message)
         except Exception as e:
-            print(f"Failed to send Telegram notification: {e}")
+            return {"status": "error", "agent": agent_name, "message": f"Telegram Notification Failed: {str(e)}"}
 
 
     return {"status": "success", "agent": agent_name, "output": content}
