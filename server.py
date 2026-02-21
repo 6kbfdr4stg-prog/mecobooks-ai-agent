@@ -369,7 +369,7 @@ def run_scheduler():
     # Redefine schedule here to be safe and explicit
     schedule.every().day.at("04:00").do(job_create_content) # 11:00 AM VN
     schedule.every().day.at("13:00").do(job_create_content) # 20:00 PM VN
-    schedule.every().day.at("03:00").do(job_email_marketing) # 10:00 AM VN
+    # schedule.every().day.at("03:00").do(job_email_marketing) # 10:00 AM VN
     schedule.every().day.at("01:00").do(job_auto_bundling) # 08:00 AM VN Daily (Phase 8.1)
     schedule.every().monday.at("01:30").do(job_analyze_inventory) # 08:30 AM VN Monday
     schedule.every(3).days.at("02:00").do(job_market_research) # 09:00 AM VN every 3 days
